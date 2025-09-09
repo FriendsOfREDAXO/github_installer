@@ -1,0 +1,38 @@
+package: github_installer
+version: '1.2.0'
+author: 'Friends Of REDAXO'
+supportpage: 'https://github.com/FriendsOfREDAXO/github_installer'
+info: 'Bidirectional GitHub integration - Install modules/templates from GitHub and upload your own'
+compile: 0
+
+page:
+    title: 'translate:title'
+    perm: github_installer[]
+    icon: rex-icon fa-github
+    pjax: false
+    subpages:
+        repositories: {title: 'translate:repositories', perm: 'github_installer[config]', icon: 'rex-icon fa-github'}
+        modules: {title: 'translate:modules', perm: 'github_installer[install]', icon: 'rex-icon fa-puzzle-piece'}
+        templates: {title: 'translate:templates', perm: 'github_installer[install]', icon: 'rex-icon fa-file-code-o'}
+        upload: {title: 'translate:upload', perm: 'github_installer[upload]', icon: 'rex-icon fa-upload'}
+        cache: {title: 'translate:cache', perm: 'github_installer[cache]'}
+        settings: {title: 'translate:settings', perm: 'admin'}
+
+permissions:
+    - github_installer[config]
+    - github_installer[install]
+    - github_installer[upload]
+    - github_installer[cache]
+
+requires:
+    php: '>=8.1'
+    redaxo: '^5.15.0'
+
+default_config:
+    github_token: ''
+    cache_lifetime: 3600
+    repositories: []
+    upload_owner: ''
+    upload_repo: ''
+    upload_branch: 'main'
+    upload_author: ''

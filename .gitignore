@@ -1,0 +1,19 @@
+# Cache-Verzeichnis ignorieren
+cache/
+*.cache
+
+# Temporäre Dateien
+*.tmp
+*.log
+
+# IDE-Dateien
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

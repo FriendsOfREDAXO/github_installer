@@ -1,0 +1,144 @@
+title = GitHub Installer
+repositories = Repositories
+modules = Modules
+templates = Templates
+cache = Cache
+settings = Settings
+
+# Repository Management
+repo_title = Repository Management
+repo_add = Add Repository
+repo_owner = GitHub Owner/Organization
+repo_name = Repository Name
+repo_display_name = Display Name (optional)
+repo_branch = Branch
+repo_add_button = Add Repository
+repo_edit = Edit
+repo_remove = Remove
+repo_remove_confirm = Really remove repository?
+repo_added_success = Repository added successfully
+repo_updated_success = Repository updated successfully
+repo_removed_success = Repository removed successfully
+repo_error_exists = Repository already exists
+repo_error_invalid = Invalid repository format
+repo_error_not_found = Repository not found on GitHub
+repo_test_connection = Test Connection
+repo_connection_ok = Connection successful
+repo_connection_failed = Connection failed
+
+# Modules
+modules_title = Modules
+modules_select_repo = Select Repository
+modules_choose_repo = -- Choose Repository --
+modules_no_repos = No repositories configured. Please add repositories first.
+modules_loading = Loading modules...
+modules_no_modules = No modules found in this repository
+modules_install = Install
+modules_install_confirm = Install module "{0}"?
+modules_installed_success = Module installed successfully
+modules_install_error = Error installing module
+module_name = Name
+module_title = Title
+module_description = Description
+module_version = Version
+module_author = Author
+module_key = Key
+module_assets = Assets
+module_assets_target = Target Directory
+module_actions = Actions
+module_details = Details
+module_info = Module Information
+
+# Templates
+templates_title = Templates
+templates_select_repo = Select Repository
+templates_choose_repo = -- Choose Repository --
+templates_no_repos = No repositories configured. Please add repositories first.
+templates_loading = Loading templates...
+templates_no_templates = No templates found in this repository
+templates_install = Install
+templates_install_confirm = Install template "{0}"?
+templates_installed_success = Template installed successfully
+templates_install_error = Error installing template
+template_name = Name
+template_title = Title
+template_description = Description
+template_version = Version
+template_author = Author
+template_key = Key
+template_assets = Assets
+template_assets_target = Target Directory
+template_actions = Actions
+template_details = Details
+template_info = Template Information
+
+# Cache Management
+cache_title = Cache Management
+cache_clear = Clear Cache
+cache_clear_confirm = Really clear all cache files?
+cache_cleared_success = Cache cleared successfully
+cache_clear_error = Error clearing cache
+cache_size = Cache Size
+cache_files = Cache Files
+cache_last_update = Last Update
+cache_no_cache = No cache files found
+
+# Settings
+settings_title = Settings
+github_token = GitHub Personal Access Token
+github_token_help = Required for higher rate limits and private repositories
+github_token_placeholder = Enter your GitHub token (optional)
+cache_lifetime = Cache Lifetime (seconds)
+cache_lifetime_help = How long to cache repository data
+save_settings = Save Settings
+settings_saved = Settings saved successfully
+
+# Upload
+upload = Upload
+upload_module = Upload module "{0}"
+upload_template = Upload template "{0}"
+upload_success = "{0}" was successfully uploaded to "{1}"
+upload_error = Upload error
+upload_missing_data = Please fill all required fields
+no_local_modules = No local modules found
+no_local_templates = No local templates found
+github_owner = GitHub Owner
+github_repo = Repository Name
+github_branch = Branch
+description = Description
+author = Author
+version = Version
+support_url = Support URL
+requirements = Requirements
+requirements_note = Comma separated, e.g.: php: >=7.4, redaxo: >=5.15
+item_not_found = Item not found
+created = Created
+updated = Updated
+name = Name
+assets = Assets
+
+# Upload Settings
+upload_owner = GitHub Owner/Username
+upload_owner_help = Your GitHub username or organization
+upload_repo = Default Repository
+upload_repo_help = Repository name for module/template uploads
+upload_branch = Default Branch
+upload_branch_help = Branch for uploads (usually 'main')
+upload_author = Default Author
+upload_author_help = Your name for metadata
+upload_settings_missing = Upload settings are not fully configured. Please configure Owner and Repository in the
+
+# General
+loading = Loading...
+error_occurred = An error occurred
+no_description = No description available
+unknown = Unknown
+success = Success
+error = Error
+warning = Warning
+info = Info
+cancel = Cancel
+save = Save
+edit = Edit
+delete = Delete
+back = Back

@@ -1,0 +1,144 @@
+title = GitHub Installer
+repositories = Repositories
+modules = Module
+templates = Templates
+cache = Cache
+settings = Einstellungen
+
+# Repository Management
+repo_title = Repository-Verwaltung
+repo_add = Repository hinzufügen
+repo_owner = GitHub Owner/Organisation
+repo_name = Repository Name
+repo_display_name = Anzeige-Name (optional)
+repo_branch = Branch
+repo_add_button = Repository hinzufügen
+repo_edit = Bearbeiten
+repo_remove = Entfernen
+repo_remove_confirm = Repository wirklich entfernen?
+repo_added_success = Repository erfolgreich hinzugefügt
+repo_updated_success = Repository erfolgreich aktualisiert
+repo_removed_success = Repository erfolgreich entfernt
+repo_error_exists = Repository existiert bereits
+repo_error_invalid = Ungültiges Repository-Format
+repo_error_not_found = Repository auf GitHub nicht gefunden
+repo_test_connection = Verbindung testen
+repo_connection_ok = Verbindung erfolgreich
+repo_connection_failed = Verbindung fehlgeschlagen
+
+# Modules
+modules_title = Module
+modules_select_repo = Repository auswählen
+modules_choose_repo = -- Repository wählen --
+modules_no_repos = Keine Repositories konfiguriert. Bitte fügen Sie zuerst Repositories hinzu.
+modules_loading = Lade Module...
+modules_no_modules = Keine Module in diesem Repository gefunden
+modules_install = Installieren
+modules_install_confirm = Modul "{0}" installieren?
+modules_installed_success = Modul erfolgreich installiert
+modules_install_error = Fehler beim Installieren des Moduls
+module_name = Name
+module_title = Titel
+module_description = Beschreibung
+module_version = Version
+module_author = Autor
+module_key = Key
+module_assets = Assets
+module_assets_target = Ziel-Verzeichnis
+module_actions = Aktionen
+module_details = Details
+module_info = Modul-Informationen
+
+# Templates
+templates_title = Templates
+templates_select_repo = Repository auswählen
+templates_choose_repo = -- Repository wählen --
+templates_no_repos = Keine Repositories konfiguriert. Bitte fügen Sie zuerst Repositories hinzu.
+templates_loading = Lade Templates...
+templates_no_templates = Keine Templates in diesem Repository gefunden
+templates_install = Installieren
+templates_install_confirm = Template "{0}" installieren?
+templates_installed_success = Template erfolgreich installiert
+templates_install_error = Fehler beim Installieren des Templates
+template_name = Name
+template_title = Titel
+template_description = Beschreibung
+template_version = Version
+template_author = Autor
+template_key = Key
+template_assets = Assets
+template_assets_target = Ziel-Verzeichnis
+template_actions = Aktionen
+template_details = Details
+template_info = Template-Informationen
+
+# Cache Management
+cache_title = Cache-Verwaltung
+cache_clear = Cache leeren
+cache_clear_confirm = Wirklich alle Cache-Dateien löschen?
+cache_cleared_success = Cache erfolgreich geleert
+cache_clear_error = Fehler beim Leeren des Caches
+cache_size = Cache-Größe
+cache_files = Cache-Dateien
+cache_last_update = Letzte Aktualisierung
+cache_no_cache = Keine Cache-Dateien gefunden
+
+# Settings
+settings_title = Einstellungen
+github_token = GitHub Personal Access Token
+github_token_help = Erforderlich für höhere Rate-Limits und private Repositories
+github_token_placeholder = GitHub Token eingeben (optional)
+cache_lifetime = Cache-Lebensdauer (Sekunden)
+cache_lifetime_help = Wie lange Repository-Daten gecacht werden sollen
+save_settings = Einstellungen speichern
+settings_saved = Einstellungen erfolgreich gespeichert
+
+# Upload
+upload = Upload
+upload_module = Modul "{0}" hochladen
+upload_template = Template "{0}" hochladen
+upload_success = "{0}" wurde erfolgreich zu "{1}" hochgeladen
+upload_error = Fehler beim Hochladen
+upload_missing_data = Bitte alle Pflichtfelder ausfüllen
+no_local_modules = Keine lokalen Module gefunden
+no_local_templates = Keine lokalen Templates gefunden
+github_owner = GitHub Besitzer
+github_repo = Repository Name
+github_branch = Branch
+description = Beschreibung
+author = Autor
+version = Version
+support_url = Support URL
+requirements = Abhängigkeiten
+requirements_note = Kommagetrennt, z.B.: php: >=7.4, redaxo: >=5.15
+item_not_found = Element nicht gefunden
+created = Erstellt
+updated = Aktualisiert
+name = Name
+assets = Assets
+
+# Upload Settings
+upload_owner = GitHub Owner/Username
+upload_owner_help = Dein GitHub Benutzername oder Organisation
+upload_repo = Standard Repository
+upload_repo_help = Repository-Name für Module/Template-Uploads
+upload_branch = Standard Branch
+upload_branch_help = Branch für Uploads (normalerweise 'main')
+upload_author = Standard Autor
+upload_author_help = Dein Name für die Metadaten
+upload_settings_missing = Upload-Einstellungen sind nicht vollständig konfiguriert. Bitte konfiguriere Owner und Repository in den
+
+# General
+loading = Lade...
+error_occurred = Ein Fehler ist aufgetreten
+no_description = Keine Beschreibung verfügbar
+unknown = Unbekannt
+success = Erfolg
+error = Fehler
+warning = Warnung
+info = Info
+cancel = Abbrechen
+save = Speichern
+edit = Bearbeiten
+delete = Löschen
+back = Zurück
