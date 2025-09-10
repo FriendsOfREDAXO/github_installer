@@ -145,9 +145,9 @@ class UpdateManager
 
         // Update basierend auf der besten verfügbaren Methode
         if ($status['update_method'] === 'key' && $moduleKey) {
-            $updateSql->setWhere('`key` = ?', [$moduleKey]);
+            $updateSql->setWhere('`key` = :wherekey', ['wherekey' => $moduleKey]);
         } else {
-            $updateSql->setWhere('id = ?', [$status['existing_data']['id']]);
+            $updateSql->setWhere('id = :whereid', ['whereid' => $status['existing_data']['id']]);
         }
 
         try {
@@ -278,9 +278,9 @@ class UpdateManager
 
         // Update basierend auf der besten verfügbaren Methode
         if ($status['update_method'] === 'key' && $templateKey) {
-            $updateSql->setWhere('`key` = ?', [$templateKey]);
+            $updateSql->setWhere('`key` = :wherekey', ['wherekey' => $templateKey]);
         } else {
-            $updateSql->setWhere('id = ?', [$status['existing_data']['id']]);
+            $updateSql->setWhere('id = :whereid', ['whereid' => $status['existing_data']['id']]);
         }
 
         try {
