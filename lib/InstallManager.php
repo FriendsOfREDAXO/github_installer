@@ -121,11 +121,22 @@ class InstallManager
         $debug['existingModuleFound'] = $existingModule ? true : false;
         $debug['existingModuleId'] = $existingModule ? $existingModule['id'] ?? 'NO_ID' : 'NULL';
         
-        // Bei Fehlern Debug-Info in Exception einbauen
-        if (!$existingModule) {
-            // Debug-Info in Logfile schreiben für Analyse
-            error_log('GitHub Installer Debug: ' . json_encode($debug, JSON_PRETTY_PRINT));
+        // IMMER Debug-Info loggen (auch bei gefundenen Modulen)
+        error_log('GitHub Installer Debug (' . $moduleTitle . '): ' . json_encode($debug, JSON_PRETTY_PRINT));
+        
+        // Auch alle existierenden Module loggen zur Analyse
+        $allModulesSql = rex_sql::factory();
+        $allModulesSql->setQuery('SELECT id, name, `key` FROM ' . rex::getTable('module') . ' ORDER BY id');
+        $allModules = [];
+        for ($i = 0; $i < $allModulesSql->getRows(); $i++) {
+            $row = $allModulesSql->getRow($i);
+            $allModules[] = [
+                'id' => $row['id'],
+                'name' => $row['name'],
+                'key' => $row['key'] ?? 'NO_KEY'
+            ];
         }
+        error_log('GitHub Installer - All existing modules: ' . json_encode($allModules, JSON_PRETTY_PRINT));
         
         if ($existingModule && isset($existingModule['id'])) {
             // Modul aktualisieren
