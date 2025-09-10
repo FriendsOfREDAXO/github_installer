@@ -86,11 +86,49 @@ class InstallManager
         $existingModule = null;
         $updateByKey = false;
         
-        // 1. Prüfung über Key (falls Key vorhanden und Key-Feld existiert)
+        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
         if ($moduleKey && $this->hasKeyField('module')) {
             $checkSql = rex_sql::factory();
             $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
             $debug['keyQuery'] = 'SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = "' . $moduleKey . '"';
+            $debug['keyRows'] = $checkSql->getRows();
+            
+            if ($checkSql->getRows() > 0) {
+                $existingModule = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key'),
+                    'input' => $checkSql->getValue('input'),
+                    'output' => $checkSql->getValue('output')
+                ];
+                $updateByKey = true;
+                $debug['foundByKey'] = true;
+            } else {
+                $debug['foundByKey'] = false;
+            }
+        }
+        
+        // 2. Fallback: Prüfung über Name
+        if (!$existingModule) {
+            $checkSql = rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE name = ?', [$moduleTitle]);
+            $debug['nameQuery'] = 'SELECT * FROM ' . rex::getTable('module') . ' WHERE name = "' . $moduleTitle . '"';
+            $debug['nameRows'] = $checkSql->getRows();
+            
+            if ($checkSql->getRows() > 0) {
+                $existingModule = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key'),
+                    'input' => $checkSql->getValue('input'),
+                    'output' => $checkSql->getValue('output')
+                ];
+                $updateByKey = false;
+                $debug['foundByName'] = true;
+            } else {
+                $debug['foundByName'] = false;
+            }
+        } "' . $moduleKey . '"';
             $debug['keyRows'] = $checkSql->getRows();
             
             if ($checkSql->getRows() > 0) {
@@ -128,13 +166,13 @@ class InstallManager
         $allModulesSql = rex_sql::factory();
         $allModulesSql->setQuery('SELECT id, name, `key` FROM ' . rex::getTable('module') . ' ORDER BY id');
         $allModules = [];
-        for ($i = 0; $i < $allModulesSql->getRows(); $i++) {
-            $row = $allModulesSql->getRow($i);
+        while ($allModulesSql->hasNext()) {
             $allModules[] = [
-                'id' => $row['id'],
-                'name' => $row['name'],
-                'key' => $row['key'] ?? 'NO_KEY'
+                'id' => $allModulesSql->getValue('id'),
+                'name' => $allModulesSql->getValue('name'),
+                'key' => $allModulesSql->getValue('key') ?? 'NO_KEY'
             ];
+            $allModulesSql->next();
         }
         error_log('GitHub Installer - All existing modules: ' . json_encode($allModules, JSON_PRETTY_PRINT));
         
@@ -256,7 +294,12 @@ class InstallManager
             $checkSql = rex_sql::factory();
             $checkSql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
             if ($checkSql->getRows() > 0) {
-                $existingTemplate = $checkSql->getRow();
+                $existingTemplate = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key'),
+                    'content' => $checkSql->getValue('content')
+                ];
                 $updateByKey = true;
             }
         }
@@ -265,7 +308,12 @@ class InstallManager
             $checkSql = rex_sql::factory();
             $checkSql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE name = ?', [$templateTitle]);
             if ($checkSql->getRows() > 0) {
-                $existingTemplate = $checkSql->getRow();
+                $existingTemplate = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key'),
+                    'content' => $checkSql->getValue('content')
+                ];
                 $updateByKey = false;
             }
         }

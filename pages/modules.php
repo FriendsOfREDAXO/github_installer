@@ -1,13 +1,14 @@
 <?php
 
 use FriendsOfREDAXO\GitHubInstaller\RepositoryManager;
-use FriendsOfREDAXO\GitHubInstaller\InstallManager;
+use FriendsOfREDAXO\GitHubInstaller\NewInstallManager;
+use FriendsOfREDAXO\GitHubInstaller\UpdateManager;
 
 $addon = rex_addon::get('github_installer');
 
-
 $repoManager = new RepositoryManager();
-$installManager = new InstallManager();
+$installManager = new NewInstallManager();
+$updateManager = new UpdateManager();
 
 // Aktionen verarbeiten
 $func = rex_request('func', 'string');
@@ -19,10 +20,24 @@ if ($func === 'install' && $repo) {
     
     if ($module) {
         try {
-            $installManager->installModule($repo, $module, $key);
+            $installManager->installNewModule($repo, $module, $key);
             echo rex_view::success($addon->i18n('modules_installed_success'));
         } catch (Exception $e) {
             echo rex_view::error($addon->i18n('modules_install_error') . ': ' . $e->getMessage());
+        }
+    }
+}
+
+if ($func === 'update' && $repo) {
+    $module = rex_request('module', 'string');
+    $key = rex_request('key', 'string');
+    
+    if ($module) {
+        try {
+            $updateManager->updateModule($repo, $module, $key);
+            echo rex_view::success($addon->i18n('modules_updated_success'));
+        } catch (Exception $e) {
+            echo rex_view::error($addon->i18n('modules_update_error') . ': ' . $e->getMessage());
         }
     }
 }
@@ -80,7 +95,7 @@ echo '<form action="' . rex_url::currentBackendPage() . '" method="post">' . $re
 // Module anzeigen wenn Repository ausgewählt
 if ($repo && isset($repositories[$repo])) {
     try {
-        $modules = $repoManager->getModules($repo);
+        $modules = $repoManager->getModulesWithStatus($repo);
         
         if (!empty($modules)) {
             $tableContent = '<div class="table-responsive">
@@ -99,12 +114,40 @@ if ($repo && isset($repositories[$repo])) {
                     <tbody>';
             
             foreach ($modules as $module) {
-                $installUrl = rex_url::currentBackendPage([
-                    'repo' => $repo,
-                    'func' => 'install',
-                    'module' => $module['name'],
-                    'key' => $module['key']
-                ]);
+                // URL und Button basierend auf Status
+                $actionUrl = '';
+                $actionButton = '';
+                $statusBadge = '';
+                
+                if ($module['status'] === 'installed') {
+                    // Update-Button für existierende Module
+                    $actionUrl = rex_url::currentBackendPage([
+                        'repo' => $repo,
+                        'func' => 'update',
+                        'module' => $module['name'],
+                        'key' => $module['key']
+                    ]);
+                    $actionButton = '<a href="' . $actionUrl . '" 
+                           class="btn btn-warning btn-xs"
+                           onclick="return confirm(\'' . $addon->i18n('modules_update_confirm', rex_escape($module['name'])) . '\')">
+                            <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('modules_update') . '
+                        </a>';
+                    $statusBadge = '<span class="label label-success">Installiert</span>';
+                } else {
+                    // Install-Button für neue Module
+                    $actionUrl = rex_url::currentBackendPage([
+                        'repo' => $repo,
+                        'func' => 'install',
+                        'module' => $module['name'],
+                        'key' => $module['key']
+                    ]);
+                    $actionButton = '<a href="' . $actionUrl . '" 
+                           class="btn btn-primary btn-xs"
+                           onclick="return confirm(\'' . $addon->i18n('modules_install_confirm', rex_escape($module['name'])) . '\')">
+                            <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('modules_install') . '
+                        </a>';
+                    $statusBadge = '<span class="label label-default">Neu</span>';
+                }
                 
                 // Assets und README-Info
                 $assetsInfo = '';
@@ -116,19 +159,13 @@ if ($repo && isset($repositories[$repo])) {
                 }
                 
                 $tableContent .= '<tr>
-                    <td><strong>' . rex_escape($module['name']) . '</strong></td>
+                    <td><strong>' . rex_escape($module['name']) . '</strong><br>' . $statusBadge . '</td>
                     <td>' . rex_escape($module['title']) . '</td>
                     <td>' . rex_escape($module['description'] ?: $addon->i18n('no_description')) . '</td>
                     <td>' . rex_escape($module['version']) . '</td>
                     <td>' . rex_escape($module['author'] ?: $addon->i18n('unknown')) . '</td>
                     <td>' . $assetsInfo . '</td>
-                    <td class="rex-table-action">
-                        <a href="' . $installUrl . '" 
-                           class="btn btn-primary btn-xs"
-                           onclick="return confirm(\'' . $addon->i18n('modules_install_confirm', rex_escape($module['name'])) . '\')">
-                            <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('modules_install') . '
-                        </a>
-                    </td>
+                    <td class="rex-table-action">' . $actionButton . '</td>
                 </tr>';
                 
                 // Details-Bereich falls Key vorhanden

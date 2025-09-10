@@ -452,6 +452,136 @@ class RepositoryManager
     }
     
     /**
+     * Module mit Status-Informationen abrufen
+     */
+    public function getModulesWithStatus(string $repoKey): array
+    {
+        $modules = $this->getModules($repoKey);
+        
+        foreach ($modules as &$module) {
+            $status = $this->getModuleInstallStatus($module['key'] ?? '', $module['title'] ?? $module['name']);
+            $module['status'] = $status['status']; // 'new', 'installed', 'updatable'
+            $module['existing_data'] = $status['existing_data'];
+        }
+        
+        return $modules;
+    }
+    
+    /**
+     * Templates mit Status-Informationen abrufen
+     */
+    public function getTemplatesWithStatus(string $repoKey): array
+    {
+        $templates = $this->getTemplates($repoKey);
+        
+        foreach ($templates as &$template) {
+            $status = $this->getTemplateInstallStatus($template['key'] ?? '', $template['title'] ?? $template['name']);
+            $template['status'] = $status['status'];
+            $template['existing_data'] = $status['existing_data'];
+        }
+        
+        return $templates;
+    }
+    
+    /**
+     * Prüft den Installationsstatus eines Moduls
+     */
+    private function getModuleInstallStatus(string $moduleKey, string $moduleName): array
+    {
+        $status = [
+            'status' => 'new',
+            'existing_data' => null
+        ];
+
+        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
+        if ($moduleKey && $this->hasKeyField('module')) {
+            $checkSql = \rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
+            
+            if ($checkSql->getRows() > 0) {
+                $status['status'] = 'installed';
+                $status['existing_data'] = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key')
+                ];
+                return $status;
+            }
+        }
+
+        // 2. Fallback: Prüfung über Name
+        if ($moduleName) {
+            $checkSql = \rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE name = ?', [$moduleName]);
+            
+            if ($checkSql->getRows() > 0) {
+                $status['status'] = 'installed';
+                $status['existing_data'] = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key')
+                ];
+            }
+        }
+
+        return $status;
+    }
+    
+    /**
+     * Prüft den Installationsstatus eines Templates
+     */
+    private function getTemplateInstallStatus(string $templateKey, string $templateName): array
+    {
+        $status = [
+            'status' => 'new',
+            'existing_data' => null
+        ];
+
+        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
+        if ($templateKey && $this->hasKeyField('template')) {
+            $checkSql = \rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
+            
+            if ($checkSql->getRows() > 0) {
+                $status['status'] = 'installed';
+                $status['existing_data'] = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key')
+                ];
+                return $status;
+            }
+        }
+
+        // 2. Fallback: Prüfung über Name
+        if ($templateName) {
+            $checkSql = \rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE name = ?', [$templateName]);
+            
+            if ($checkSql->getRows() > 0) {
+                $status['status'] = 'installed';
+                $status['existing_data'] = [
+                    'id' => $checkSql->getValue('id'),
+                    'name' => $checkSql->getValue('name'),
+                    'key' => $checkSql->getValue('key')
+                ];
+            }
+        }
+
+        return $status;
+    }
+    
+    /**
+     * Prüft ob eine Tabelle ein `key` Feld hat
+     */
+    private function hasKeyField(string $table = 'module'): bool
+    {
+        $sql = \rex_sql::factory();
+        $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable($table) . ' LIKE "key"');
+        return $sql->getRows() > 0;
+    }
+
+    /**
      * Namen verschönern (text-simple -> Text Simple)
      */
     private function beautifyName(string $name): string
