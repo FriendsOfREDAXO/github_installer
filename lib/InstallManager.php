@@ -76,26 +76,55 @@ class InstallManager
         // SQL-Objekt initialisieren
         $sql = rex_sql::factory();
         
+        // Debug-Info sammeln
+        $debug = [];
+        $debug['moduleKey'] = $moduleKey;
+        $debug['moduleTitle'] = $moduleTitle;
+        $debug['hasKeyField'] = $this->hasKeyField('module');
+        
         // Prüfen ob Modul bereits existiert (über Key oder Name)
         $existingModule = null;
         $updateByKey = false;
         
+        // 1. Prüfung über Key (falls Key vorhanden und Key-Feld existiert)
         if ($moduleKey && $this->hasKeyField('module')) {
             $checkSql = rex_sql::factory();
             $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
+            $debug['keyQuery'] = 'SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = "' . $moduleKey . '"';
+            $debug['keyRows'] = $checkSql->getRows();
+            
             if ($checkSql->getRows() > 0) {
                 $existingModule = $checkSql->getRow();
                 $updateByKey = true;
+                $debug['foundByKey'] = true;
+            } else {
+                $debug['foundByKey'] = false;
             }
         }
         
+        // 2. Fallback: Prüfung über Name
         if (!$existingModule) {
             $checkSql = rex_sql::factory();
             $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE name = ?', [$moduleTitle]);
+            $debug['nameQuery'] = 'SELECT * FROM ' . rex::getTable('module') . ' WHERE name = "' . $moduleTitle . '"';
+            $debug['nameRows'] = $checkSql->getRows();
+            
             if ($checkSql->getRows() > 0) {
                 $existingModule = $checkSql->getRow();
                 $updateByKey = false;
+                $debug['foundByName'] = true;
+            } else {
+                $debug['foundByName'] = false;
             }
+        }
+        
+        $debug['existingModuleFound'] = $existingModule ? true : false;
+        $debug['existingModuleId'] = $existingModule ? $existingModule['id'] ?? 'NO_ID' : 'NULL';
+        
+        // Bei Fehlern Debug-Info in Exception einbauen
+        if (!$existingModule) {
+            // Debug-Info in Logfile schreiben für Analyse
+            error_log('GitHub Installer Debug: ' . json_encode($debug, JSON_PRETTY_PRINT));
         }
         
         if ($existingModule && isset($existingModule['id'])) {
@@ -150,7 +179,9 @@ class InstallManager
         try {
             $insertSql->insert();
         } catch (\rex_sql_exception $e) {
-            throw new \Exception('Fehler beim Erstellen des Moduls: ' . $e->getMessage());
+            // Debug-Info in Fehlermeldung einbauen
+            $debugInfo = json_encode($debug, JSON_PRETTY_PRINT);
+            throw new \Exception('Fehler beim Erstellen des Moduls: ' . $e->getMessage() . "\n\nDebug-Info:\n" . $debugInfo);
         }
         
         // Assets installieren falls vorhanden
