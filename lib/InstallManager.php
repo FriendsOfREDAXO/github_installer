@@ -93,9 +93,13 @@ class InstallManager
         }
         
         if ($existingModule && isset($existingModule['id'])) {
-            // Modul aktualisieren
+            // Modul aktualisieren - verwende Key falls vorhanden, sonst ID
             $sql->setTable(rex::getTable('module'));
-            $sql->setWhere(['id' => $existingModule['id']]);
+            if ($moduleKey && $this->hasKeyField('module')) {
+                $sql->setWhere(['key' => $moduleKey]);
+            } else {
+                $sql->setWhere(['id' => $existingModule['id']]);
+            }
             $sql->setValue('name', $moduleTitle);
             $sql->setValue('input', $inputCode);
             $sql->setValue('output', $outputCode);
@@ -193,9 +197,13 @@ class InstallManager
         }
         
         if ($existingTemplate && isset($existingTemplate['id'])) {
-            // Template aktualisieren
+            // Template aktualisieren - verwende Key falls vorhanden, sonst ID
             $sql->setTable(rex::getTable('template'));
-            $sql->setWhere(['id' => $existingTemplate['id']]);
+            if ($templateKey && $this->hasKeyField('template')) {
+                $sql->setWhere(['key' => $templateKey]);
+            } else {
+                $sql->setWhere(['id' => $existingTemplate['id']]);
+            }
             $sql->setValue('name', $templateTitle);
             $sql->setValue('content', $templateCode);
             

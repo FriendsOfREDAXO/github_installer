@@ -1,5 +1,5 @@
 package: github_installer
-version: '1.2.2'
+version: '1.2.3'
 author: 'Friends Of REDAXO'
 supportpage: 'https://github.com/FriendsOfREDAXO/github_installer'
 info: 'Bidirectional GitHub integration - Install modules/templates from GitHub and upload your own'
