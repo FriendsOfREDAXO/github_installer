@@ -110,9 +110,15 @@ class InstallManager
             }
             
             $sql->addGlobalUpdateFields();
-            $sql->update();
+            
+            try {
+                $sql->update();
+            } catch (\rex_sql_exception $e) {
+                throw new \Exception('Fehler beim Aktualisieren des Moduls: ' . $e->getMessage());
+            }
         } else {
             // Neues Modul erstellen
+            $sql = rex_sql::factory(); // Neues SQL-Objekt für INSERT
             $sql->setTable(rex::getTable('module'));
             $sql->setValue('name', $moduleTitle);
             $sql->setValue('input', $inputCode);
@@ -124,7 +130,12 @@ class InstallManager
             }
             
             $sql->addGlobalCreateFields();
-            $sql->insert();
+            
+            try {
+                $sql->insert();
+            } catch (\rex_sql_exception $e) {
+                throw new \Exception('Fehler beim Erstellen des Moduls: ' . $e->getMessage());
+            }
         }
         
         // Assets installieren falls vorhanden
@@ -213,9 +224,15 @@ class InstallManager
             }
             
             $sql->addGlobalUpdateFields();
-            $sql->update();
+            
+            try {
+                $sql->update();
+            } catch (\rex_sql_exception $e) {
+                throw new \Exception('Fehler beim Aktualisieren des Templates: ' . $e->getMessage());
+            }
         } else {
             // Neues Template erstellen
+            $sql = rex_sql::factory(); // Neues SQL-Objekt für INSERT
             $sql->setTable(rex::getTable('template'));
             $sql->setValue('name', $templateTitle);
             $sql->setValue('content', $templateCode);
@@ -226,7 +243,12 @@ class InstallManager
             }
             
             $sql->addGlobalCreateFields();
-            $sql->insert();
+            
+            try {
+                $sql->insert();
+            } catch (\rex_sql_exception $e) {
+                throw new \Exception('Fehler beim Erstellen des Templates: ' . $e->getMessage());
+            }
         }
         
         // Assets installieren falls vorhanden
