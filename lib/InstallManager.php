@@ -92,7 +92,7 @@ class InstallManager
             }
         }
         
-        if ($existingModule) {
+        if ($existingModule && isset($existingModule['id'])) {
             // Modul aktualisieren
             $sql->setTable(rex::getTable('module'));
             $sql->setWhere(['id' => $existingModule['id']]);
@@ -192,7 +192,7 @@ class InstallManager
             }
         }
         
-        if ($existingTemplate) {
+        if ($existingTemplate && isset($existingTemplate['id'])) {
             // Template aktualisieren
             $sql->setTable(rex::getTable('template'));
             $sql->setWhere(['id' => $existingTemplate['id']]);
