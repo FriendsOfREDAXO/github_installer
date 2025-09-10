@@ -10,10 +10,14 @@ use rex_config;
 class RepositoryManager
 {
     private GitHubApi $github;
+    private string $cacheDir;
+    private int $cacheLifetime;
     
     public function __construct()
     {
         $this->github = new GitHubApi();
+        $this->cacheDir = \rex_path::addonCache('github_installer');
+        $this->cacheLifetime = \rex_config::get('github_installer', 'cache_lifetime', 3600);
     }
     
     /**
@@ -579,6 +583,287 @@ class RepositoryManager
         $sql = \rex_sql::factory();
         $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable($table) . ' LIKE "key"');
         return $sql->getRows() > 0;
+    }
+
+    /**
+     * Klassen aus Repository laden mit Installationsstatus
+     */
+    public function getClassesWithStatus(string $repoKey): array
+    {
+        $classes = $this->getClasses($repoKey);
+        $projectLibPath = \rex_path::addon('project') . 'lib/';
+        
+        foreach ($classes as $className => &$classData) {
+            $filename = $classData['filename'] ?? $className . '.php';
+            
+            // Prüfung mit Verzeichnis-Struktur
+            if (str_contains($classData['path'], '/')) {
+                // z.B. "classes/DemoHelper" -> "lib/DemoHelper/DemoHelper.php"
+                $classDirName = basename($classData['path']);
+                $targetFile = $projectLibPath . $classDirName . '/' . $filename;
+            } else {
+                // Einzelne Datei direkt in lib/
+                $targetFile = $projectLibPath . $filename;
+            }
+            
+            $classData['status'] = [
+                'installed' => file_exists($targetFile),
+                'target_path' => $targetFile
+            ];
+        }
+        
+        return $classes;
+    }
+    
+    /**
+     * Klassen aus Repository laden
+     */
+    public function getClasses(string $repoKey): array
+    {
+        $cacheKey = "classes_{$repoKey}";
+        $cached = $this->getCacheData($cacheKey);
+        
+        if ($cached !== null) {
+            return $cached;
+        }
+        
+        $repoData = $this->getRepositoryData($repoKey);
+        if (!$repoData) {
+            return [];
+        }
+        
+        try {
+            $classes = [];
+            
+            // Classes-Verzeichnis prüfen
+            try {
+                $contents = $this->github->getRepositoryContents(
+                    $repoData['owner'],
+                    $repoData['repo'],
+                    'classes',
+                    $repoData['branch'] ?? 'main'
+                );
+                
+                foreach ($contents as $item) {
+                    if ($item['type'] === 'dir') {
+                        // Verzeichnis mit Klasse
+                        $className = $item['name'];
+                        $classData = $this->parseClassDirectory($repoData, $className);
+                        if ($classData) {
+                            $classes[$className] = $classData;
+                        }
+                    } elseif ($item['type'] === 'file' && pathinfo($item['name'], PATHINFO_EXTENSION) === 'php') {
+                        // Direkte PHP-Datei
+                        $className = pathinfo($item['name'], PATHINFO_FILENAME);
+                        $classData = $this->parseClassFile($repoData, $item['name']);
+                        if ($classData) {
+                            $classes[$className] = $classData;
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                // Classes-Verzeichnis existiert nicht
+            }
+            
+            $this->setCacheData($cacheKey, $classes);
+            return $classes;
+            
+        } catch (\Exception $e) {
+            \rex_logger::logException($e);
+            return [];
+        }
+    }
+    
+    /**
+     * Klassen-Verzeichnis parsen (mit config.yml)
+     */
+    private function parseClassDirectory(array $repoData, string $className): ?array
+    {
+        try {
+            // config.yml laden
+            $configContent = $this->github->getFileContent(
+                $repoData['owner'],
+                $repoData['repo'],
+                "classes/{$className}/config.yml",
+                $repoData['branch'] ?? 'main'
+            );
+            
+            $config = \rex_string::yamlDecode($configContent);
+            if (!$config) {
+                return null;
+            }
+            
+            // PHP-Datei prüfen
+            $phpFile = $config['filename'] ?? $className . '.php';
+            $phpContent = $this->github->getFileContent(
+                $repoData['owner'],
+                $repoData['repo'],
+                "classes/{$className}/{$phpFile}",
+                $repoData['branch'] ?? 'main'
+            );
+            
+            // README-URL generieren
+            $readmeUrl = "https://github.com/{$repoData['owner']}/{$repoData['repo']}/blob/{$repoData['branch']}/classes/{$className}/README.md";
+            
+            return [
+                'title' => $config['title'] ?? $className,
+                'description' => $config['description'] ?? '',
+                'version' => $config['version'] ?? '1.0.0',
+                'author' => $config['author'] ?? '',
+                'filename' => $phpFile,
+                'target_directory' => $config['target_directory'] ?? 'lib',
+                'namespace' => $config['namespace'] ?? '',
+                'content' => $phpContent,
+                'config' => $config,
+                'path' => "classes/{$className}",
+                'readme_url' => $readmeUrl
+            ];
+            
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Einzelne PHP-Datei als Klasse parsen
+     */
+    private function parseClassFile(array $repoData, string $filename): ?array
+    {
+        try {
+            $content = $this->github->getFileContent(
+                $repoData['owner'],
+                $repoData['repo'],
+                "classes/{$filename}",
+                $repoData['branch'] ?? 'main'
+            );
+            
+            $className = pathinfo($filename, PATHINFO_FILENAME);
+            
+            // Basis-Informationen aus PHP-Kommentaren extrahieren
+            $title = $this->extractClassTitle($content) ?: $className;
+            $description = $this->extractClassDescription($content);
+            $version = $this->extractClassVersion($content) ?: '1.0.0';
+            $author = $this->extractClassAuthor($content);
+            
+            // README-URL generieren
+            $readmeUrl = "https://github.com/{$repoData['owner']}/{$repoData['repo']}/blob/{$repoData['branch']}/classes/README.md";
+            
+            return [
+                'title' => $title,
+                'description' => $description,
+                'version' => $version,
+                'author' => $author,
+                'filename' => $filename,
+                'target_directory' => 'lib',
+                'namespace' => '',
+                'content' => $content,
+                'path' => "classes/{$filename}",
+                'readme_url' => $readmeUrl
+            ];
+            
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+    
+    /**
+     * Klassen-Titel aus PHP-Kommentaren extrahieren  
+     */
+    private function extractClassTitle(string $content): string
+    {
+        if (preg_match('/@title\s+(.+)/i', $content, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        if (preg_match('/class\s+(\w+)/', $content, $matches)) {
+            return $this->beautifyName($matches[1]);
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Klassen-Beschreibung aus PHP-Kommentaren extrahieren
+     */  
+    private function extractClassDescription(string $content): string
+    {
+        if (preg_match('/@description\s+(.+)/i', $content, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        // Ersten Kommentarblock nach <?php suchen
+        if (preg_match('/\/\*\*(.*?)\*\//s', $content, $matches)) {
+            $comment = $matches[1];
+            $lines = explode("\n", $comment);
+            
+            foreach ($lines as $line) {
+                $line = trim($line, " \t*");
+                if (!empty($line) && !preg_match('/@\w+/', $line)) {
+                    return substr($line, 0, 200);
+                }
+            }
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Klassen-Version aus PHP-Kommentaren extrahieren
+     */
+    private function extractClassVersion(string $content): string
+    {
+        if (preg_match('/@version\s+(.+)/i', $content, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        return '';
+    }
+    
+    /**
+     * Klassen-Autor aus PHP-Kommentaren extrahieren
+     */
+    private function extractClassAuthor(string $content): string
+    {
+        if (preg_match('/@author\s+(.+)/i', $content, $matches)) {
+            return trim($matches[1]);
+        }
+        
+        return '';
+    }
+
+    /**
+     * Repository-Daten aus der Konfiguration laden
+     */
+    private function getRepositoryData(string $repoKey): ?array
+    {
+        $repositories = $this->getRepositories();
+        return $repositories[$repoKey] ?? null;
+    }
+    
+    /**
+     * Cache-Daten laden
+     */
+    private function getCacheData(string $cacheKey): ?array
+    {
+        $cacheFile = $this->cacheDir . $cacheKey . '.json';
+        
+        if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $this->cacheLifetime) {
+            $content = \rex_file::get($cacheFile);
+            if ($content) {
+                return json_decode($content, true) ?: [];
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Cache-Daten speichern
+     */
+    private function setCacheData(string $cacheKey, array $data): void
+    {
+        $cacheFile = $this->cacheDir . $cacheKey . '.json';
+        \rex_file::put($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
     }
 
     /**

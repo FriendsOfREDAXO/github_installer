@@ -237,6 +237,62 @@ class NewInstallManager
     }
 
     /**
+     * Installiert eine Klasse aus einem Repository
+     */
+    public function installClass(string $repoKey, string $className): bool
+    {
+        $repositoryManager = new RepositoryManager();
+        $classes = $repositoryManager->getClasses($repoKey);
+        
+        if (!isset($classes[$className])) {
+            throw new \Exception("Klasse '{$className}' nicht gefunden");
+        }
+        
+        $classData = $classes[$className];
+        $targetDirectory = $classData['target_directory'] ?? 'lib';
+        $filename = $classData['filename'] ?? $className . '.php';
+        
+        // Ziel-Pfad bestimmen mit Verzeichnis-Struktur
+        if ($targetDirectory === 'lib') {
+            $basePath = \rex_path::addon('project') . 'lib/';
+        } else {
+            $basePath = \rex_path::addon('project') . $targetDirectory . '/';
+        }
+        
+        // Wenn die Klasse aus einem Verzeichnis stammt, Verzeichnis-Struktur beibehalten
+        if (str_contains($classData['path'], '/')) {
+            // z.B. "classes/DemoHelper" -> "DemoHelper/"
+            $classDirName = basename($classData['path']);
+            $targetPath = $basePath . $classDirName . '/';
+        } else {
+            // Einzelne Datei direkt in lib/
+            $targetPath = $basePath;
+        }
+        
+        // Verzeichnis erstellen falls nicht vorhanden
+        if (!is_dir($targetPath)) {
+            if (!\rex_dir::create($targetPath)) {
+                throw new \Exception("Konnte Ziel-Verzeichnis nicht erstellen: {$targetPath}");
+            }
+        }
+        
+        $targetFile = $targetPath . $filename;
+        
+        // Prüfen ob Datei bereits existiert
+        if (file_exists($targetFile)) {
+            throw new \Exception("Klasse '{$className}' ist bereits installiert");
+        }
+        
+        // Datei schreiben
+        if (!\rex_file::put($targetFile, $classData['content'])) {
+            throw new \Exception("Konnte Klasse-Datei nicht schreiben: {$targetFile}");
+        }
+        
+        error_log("GitHub Installer - Class '{$className}' successfully installed to {$targetFile}");
+        return true;
+    }
+
+    /**
      * Prüft ob eine Tabelle ein `key` Feld hat
      */
     private function hasKeyField(string $table = 'module'): bool

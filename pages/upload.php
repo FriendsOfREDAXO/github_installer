@@ -165,7 +165,7 @@ $list->setColumnFormat('upload', 'custom', function ($params) use ($type) {
     $itemId = $params['list']->getValue('id');
     $url = rex_url::currentBackendPage(['func' => 'upload', 'item_id' => $itemId, 'type' => $type]);
     return '<a class="btn btn-primary btn-xs" href="' . $url . '">' . 
-           rex_i18n::msg('github_installer_upload') . '</a>';
+           rex_i18n::msg('upload') . '</a>';
 });
 
 echo $list->get();
@@ -187,7 +187,7 @@ function uploadModule($moduleId, $github, $owner, $repo, $branch, $author, $desc
     $basePath = "modules/{$moduleName}";
     
     // Config.yml
-    $config = generateModuleConfig($moduleNameTitle, $author, $description, $version);
+    $config = generateModuleConfig($moduleNameTitle, $moduleName, $author, $description, $version);
     $github->createOrUpdateFile($owner, $repo, "{$basePath}/config.yml", $config, "Update module {$moduleName}", $branch);
     
     // input.php
@@ -222,7 +222,7 @@ function uploadTemplate($templateId, $github, $owner, $repo, $branch, $author, $
     $basePath = "templates/{$templateName}";
     
     // Config.yml
-    $config = generateTemplateConfig($templateNameTitle, $author, $description, $version);
+    $config = generateTemplateConfig($templateNameTitle, $templateName, $author, $description, $version);
     $github->createOrUpdateFile($owner, $repo, "{$basePath}/config.yml", $config, "Update template {$templateName}", $branch);
     
     // template.php
@@ -239,23 +239,25 @@ function uploadTemplate($templateId, $github, $owner, $repo, $branch, $author, $
     return ['name' => $templateName];
 }
 
-function generateModuleConfig($moduleName, $author, $description, $version) {
+function generateModuleConfig($moduleName, $moduleKey, $author, $description, $version) {
     $yaml = [];
     $yaml[] = 'title: "' . $moduleName . '"';
     $yaml[] = 'description: "' . ($description ?: 'Keine Beschreibung') . '"';
     $yaml[] = 'author: "' . $author . '"';
     $yaml[] = 'version: "' . $version . '"';
+    $yaml[] = 'key: "' . $moduleKey . '"';
     $yaml[] = 'redaxo_version: "5.13+"';
     
     return implode("\n", $yaml);
 }
 
-function generateTemplateConfig($templateName, $author, $description, $version) {
+function generateTemplateConfig($templateName, $templateKey, $author, $description, $version) {
     $yaml = [];
     $yaml[] = 'title: "' . $templateName . '"';
     $yaml[] = 'description: "' . ($description ?: 'Keine Beschreibung') . '"';
     $yaml[] = 'author: "' . $author . '"';
     $yaml[] = 'version: "' . $version . '"';
+    $yaml[] = 'key: "' . $templateKey . '"';
     $yaml[] = 'redaxo_version: "5.13+"';
     
     return implode("\n", $yaml);

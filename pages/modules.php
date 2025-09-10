@@ -76,18 +76,13 @@ $formElements[] = $n;
 
 $fragment = new rex_fragment();
 $fragment->setVar('elements', $formElements, false);
-$content .= $fragment->parse('core/form/container.php');
-
-$fragment = new rex_fragment();
-$fragment->setVar('elements', [$n], false);
-$buttons = $fragment->parse('core/form/submit.php');
+$content = $fragment->parse('core/form/container.php');
 
 // Repository-Formular
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit');
 $fragment->setVar('title', $addon->i18n('modules_select_repo'));
 $fragment->setVar('body', $content, false);
-$fragment->setVar('buttons', $buttons, false);
 $repoForm = $fragment->parse('core/page/section.php');
 
 echo '<form action="' . rex_url::currentBackendPage() . '" method="post">' . $repoForm . '</form>';

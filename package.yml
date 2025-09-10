@@ -1,5 +1,5 @@
 package: github_installer
-version: '1.3.2'
+version: '1.3.0'
 author: 'Friends Of REDAXO'
 supportpage: 'https://github.com/FriendsOfREDAXO/github_installer'
 info: 'Bidirectional GitHub integration - Install modules/templates from GitHub and upload your own'
@@ -14,6 +14,7 @@ page:
         repositories: {title: 'translate:repositories', perm: 'github_installer[config]', icon: 'rex-icon fa-github'}
         modules: {title: 'translate:modules', perm: 'github_installer[install]', icon: 'rex-icon fa-puzzle-piece'}
         templates: {title: 'translate:templates', perm: 'github_installer[install]', icon: 'rex-icon fa-file-code-o'}
+        classes: {title: 'translate:classes_title', perm: 'github_installer[install]', icon: 'rex-icon fa-code'}
         upload: {title: 'translate:upload', perm: 'github_installer[upload]', icon: 'rex-icon fa-upload'}
         cache: {title: 'translate:cache', perm: 'github_installer[cache]'}
         settings: {title: 'translate:settings', perm: 'admin'}

@@ -1,23 +1,25 @@
 # GitHub Installer
 
-**Bidirektionale GitHub-Integration für REDAXO** - Installiere Module und Templates aus GitHub-Repositories und lade deine eigenen Module/Templates zu GitHub hoch.
+**Bidirektionale GitHub-Integration für REDAXO** - Installiere Module, Templates und Classes aus GitHub-Repositories und lade deine eigenen Inhalte zu GitHub hoch.
 
 ## 🚀 Features
 
 ### 📥 Installation von GitHub
-- Browse und installiere Module/Templates aus GitHub-Repositories
+- Browse und installiere Module/Templates/Classes aus GitHub-Repositories
 - **Asset-Unterstützung**: CSS/JS-Dateien werden automatisch kopiert nach `/assets/modules/{key}/` bzw. `/assets/templates/{key}/`
+- **Class-Support**: PHP-Classes werden nach `project/lib/` installiert mit Verzeichnis-Struktur
 - File-basiertes Caching für bessere Performance
 - Unterstützung für private Repositories mit GitHub-Tokens
 - Multi-Language Support (Deutsch/Englisch)
 - Sauberes Repository-Management
 
 ### 📤 Upload zu GitHub  
-- **Bidirektionale Synchronisation**: Lade deine lokalen REDAXO Module/Templates zu GitHub hoch
+- **Bidirektionale Synchronisation**: Lade deine lokalen REDAXO Module/Templates/Classes zu GitHub hoch
 - **Settings-Integration**: Einmalige Repository-Konfiguration (Owner, Repository, Branch, Author)
 - **Intelligente Ordnernamenerkennung**: Verwendet Modul-Keys (z.B. "gblock") statt IDs
 - **Vollständiger Upload**: input.php, output.php, config.yml, README.md werden automatisch generiert
-- **Überschreiben**: Vorhandene Module/Templates werden aktualisiert
+- **Class-Upload**: PHP-Classes aus `project/lib/` mit Verzeichnis-Struktur
+- **Überschreiben**: Vorhandene Module/Templates/Classes werden aktualisiert
 
 ## 📁 Repository-Struktur
 
@@ -34,14 +36,21 @@ repository/
 │       └── assets/              # CSS/JS-Dateien (optional)
 │           ├── styles.css
 │           └── script.js
-└── templates/
-    └── template_key/            # z.B. "main-layout"
-        ├── config.yml           # Template-Konfiguration
-        ├── template.php         # Template-Inhalt
-        ├── README.md            # Dokumentation (optional)  
-        └── assets/              # CSS/JS-Dateien (optional)
-            ├── template.css
-            └── template.js
+├── templates/
+│   └── template_key/            # z.B. "main-layout"
+│       ├── config.yml           # Template-Konfiguration
+│       ├── template.php         # Template-Inhalt
+│       ├── README.md            # Dokumentation (optional)  
+│       └── assets/              # CSS/JS-Dateien (optional)
+│           ├── template.css
+│           └── template.js
+└── classes/
+    ├── SimpleClass.php          # Einzelne Class-Datei
+    ├── SimpleClass.md           # Dokumentation (optional)
+    └── ComplexClass/            # Class mit Verzeichnis-Struktur
+        ├── ComplexClass.php     # Haupt-Class-Datei
+        ├── README.md            # Dokumentation (optional)
+        └── config.yml           # Class-Konfiguration (optional)
 ```
 
 ## 📝 config.yml Format
@@ -62,6 +71,16 @@ description: "Basis-Layout für die Website"
 author: "Developer Name"
 version: "1.2.0"
 redaxo_version: "5.13+"
+```
+
+### Class Konfiguration
+```yaml
+title: "Demo Helper Class"
+description: "Hilfsklasse für Demo-Funktionen"
+author: "Developer Name"
+version: "1.0.0"
+redaxo_version: "5.13+"
+namespace: "Demo"
 ```
 
 ## 🛠️ Installation & Konfiguration
@@ -86,23 +105,23 @@ Für das Hochladen zu GitHub:
 
 ## 🎯 Verwendung
 
-### Module/Templates installieren
-1. Backend → Addons → GitHub Installer → **Installieren**
+### Module/Templates/Classes installieren
+1. Backend → Addons → GitHub Installer → **Installieren** (Module/Templates/Classes)
 2. Repository hinzufügen (z.B. `username/repository`)
-3. Verfügbare Module/Templates durchsuchen
-4. **Installieren** klicken
+3. Verfügbare Module/Templates/Classes durchsuchen
+4. **Installieren** oder **Neu laden** klicken
 5. Assets werden automatisch nach `/assets/modules/{key}/` kopiert
+6. Classes werden nach `project/lib/` installiert (mit Verzeichnis-Struktur)
 
-### Module/Templates hochladen
+### Module/Templates/Classes hochladen
 1. Backend → Addons → GitHub Installer → **Upload**
-2. Modul oder Template aus der Liste auswählen
+2. Modul, Template oder Class aus der Liste auswählen
 3. **Upload** klicken
 4. Beschreibung und Version eingeben
 5. Das System erstellt automatisch:
-   - `/modules/{key}/config.yml`
-   - `/modules/{key}/input.php`
-   - `/modules/{key}/output.php`
-   - `/modules/{key}/README.md`
+   - **Module**: `/modules/{key}/config.yml`, `input.php`, `output.php`, `README.md`
+   - **Templates**: `/templates/{key}/config.yml`, `template.php`, `README.md`
+   - **Classes**: `/classes/{classname}.php` oder `/classes/{classname}/` mit Struktur
 
 ## 🔧 Asset-Management
 
@@ -129,16 +148,29 @@ stuff/
 │       ├── config.yml
 │       ├── input.php
 │       └── output.php
-└── templates/
-    └── main-layout/
-        ├── config.yml
-        ├── template.php
-        └── assets/
-            ├── layout.css
-            └── layout.js
+├── templates/
+│   └── main-layout/
+│       ├── config.yml
+│       ├── template.php
+│       └── assets/
+│           ├── layout.css
+│           └── layout.js
+└── classes/
+    ├── SimpleHelper.php
+    └── DemoHelper/
+        ├── DemoHelper.php
+        ├── README.md
+        └── config.yml
 ```
 
 ## 🆕 Changelog
+
+### Version 1.3.0
+- ✅ **Class-Support**: Vollständige Unterstützung für PHP-Classes
+- ✅ **Verzeichnis-Struktur**: Classes werden mit korrekter Ordner-Struktur installiert
+- ✅ **Architecture-Refactor**: Getrennte Install- und Update-Manager
+- ✅ **UI-Verbesserungen**: Konsistente Benutzeroberfläche für alle Typen
+- ✅ **Terminologie**: "Neu laden" statt "Aktualisieren" für bessere Klarheit
 
 ### Version 1.2.0
 - ✅ **Bidirektionale Synchronisation**: Upload-Funktionalität hinzugefügt

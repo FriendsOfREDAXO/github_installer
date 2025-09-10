@@ -101,7 +101,7 @@ class UpdateManager
         $status = $this->getModuleStatus($moduleKey, $moduleTitle);
         
         if (!$status['exists']) {
-            throw new \Exception('Module does not exist - use InstallManager for new installations');
+            throw new \Exception('Modul existiert nicht - verwenden Sie den InstallManager für neue Installationen');
         }
 
         // Input und Output laden
@@ -156,7 +156,7 @@ class UpdateManager
             // REDAXO Cache löschen
             \rex_delete_cache();
             
-            error_log("GitHub Installer - Module '{$moduleTitle}' successfully updated via {$status['update_method']}");
+            error_log("GitHub Installer - Module '{$moduleTitle}' successfully reloaded via {$status['update_method']}");
             return true;
             
         } catch (\Exception $e) {
@@ -248,7 +248,7 @@ class UpdateManager
         $status = $this->getTemplateStatus($templateKey, $templateTitle);
         
         if (!$status['exists']) {
-            throw new \Exception('Template does not exist - use InstallManager for new installations');
+            throw new \Exception('Template existiert nicht - verwenden Sie den InstallManager für neue Installationen');
         }
 
         // Template-Code laden
@@ -289,13 +289,74 @@ class UpdateManager
             // REDAXO Cache löschen
             \rex_delete_cache();
             
-            error_log("GitHub Installer - Template '{$templateTitle}' successfully updated via {$status['update_method']}");
+            error_log("GitHub Installer - Template '{$templateTitle}' successfully reloaded via {$status['update_method']}");
             return true;
             
         } catch (\Exception $e) {
             error_log("GitHub Installer - Error updating template '{$templateTitle}': " . $e->getMessage());
             throw new \Exception('Fehler beim Aktualisieren des Templates: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Aktualisiert eine Klasse aus einem Repository
+     */
+    public function updateClass(string $repoKey, string $className): bool
+    {
+        $repositoryManager = new RepositoryManager();
+        $classes = $repositoryManager->getClasses($repoKey);
+        
+        if (!isset($classes[$className])) {
+            throw new \Exception("Klasse '{$className}' nicht gefunden");
+        }
+        
+        $classData = $classes[$className];
+        $targetDirectory = $classData['target_directory'] ?? 'lib';
+        $filename = $classData['filename'] ?? $className . '.php';
+        
+        // Ziel-Pfad bestimmen mit Verzeichnis-Struktur
+        if ($targetDirectory === 'lib') {
+            $basePath = \rex_path::addon('project') . 'lib/';
+        } else {
+            $basePath = \rex_path::addon('project') . $targetDirectory . '/';
+        }
+        
+        // Wenn die Klasse aus einem Verzeichnis stammt, Verzeichnis-Struktur beibehalten
+        if (str_contains($classData['path'], '/')) {
+            // z.B. "classes/DemoHelper" -> "DemoHelper/"
+            $classDirName = basename($classData['path']);
+            $targetPath = $basePath . $classDirName . '/';
+        } else {
+            // Einzelne Datei direkt in lib/
+            $targetPath = $basePath;
+        }
+        
+        $targetFile = $targetPath . $filename;
+        
+        // Prüfen ob Datei existiert (zum Neu-Laden muss sie vorhanden sein)
+        if (!file_exists($targetFile)) {
+            throw new \Exception("Klasse '{$className}' ist nicht installiert - verwenden Sie den InstallManager für neue Installationen");
+        }
+        
+        // Backup der alten Datei erstellen
+        $backupFile = $targetFile . '.backup.' . date('Y-m-d_H-i-s');
+        if (!copy($targetFile, $backupFile)) {
+            throw new \Exception("Konnte Backup nicht erstellen");
+        }
+        
+        // Neue Datei schreiben
+        if (!\rex_file::put($targetFile, $classData['content'])) {
+            // Backup wiederherstellen bei Fehler
+            copy($backupFile, $targetFile);
+            unlink($backupFile);
+            throw new \Exception("Konnte Klasse-Datei nicht neu laden: {$targetFile}");
+        }
+        
+        // Backup löschen bei erfolgreichem Neu-Laden
+        unlink($backupFile);
+        
+        error_log("GitHub Installer - Class '{$className}' successfully reloaded at {$targetFile}");
+        return true;
     }
 
     /**
