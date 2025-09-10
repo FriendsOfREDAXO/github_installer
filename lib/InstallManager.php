@@ -122,29 +122,35 @@ class InstallManager
             
             try {
                 $updateSql->update();
+                // Erfolgreich aktualisiert - Assets installieren und beenden
+                if ($moduleKey) {
+                    $this->installModuleAssets($repo, $moduleName, $moduleKey);
+                }
+                rex_delete_cache();
+                return true;
             } catch (\rex_sql_exception $e) {
                 throw new \Exception('Fehler beim Aktualisieren des Moduls: ' . $e->getMessage());
             }
-        } else {
-            // Neues Modul erstellen
-            $sql = rex_sql::factory(); // Neues SQL-Objekt für INSERT
-            $sql->setTable(rex::getTable('module'));
-            $sql->setValue('name', $moduleTitle);
-            $sql->setValue('input', $inputCode);
-            $sql->setValue('output', $outputCode);
-            
-            // Key nur setzen wenn das Feld existiert
-            if ($moduleKey && $this->hasKeyField('module')) {
-                $sql->setValue('key', $moduleKey);
-            }
-            
-            $sql->addGlobalCreateFields();
-            
-            try {
-                $sql->insert();
-            } catch (\rex_sql_exception $e) {
-                throw new \Exception('Fehler beim Erstellen des Moduls: ' . $e->getMessage());
-            }
+        }
+        
+        // Wenn wir hier ankommen, Modul neu erstellen
+        $insertSql = rex_sql::factory();
+        $insertSql->setTable(rex::getTable('module'));
+        $insertSql->setValue('name', $moduleTitle);
+        $insertSql->setValue('input', $inputCode);
+        $insertSql->setValue('output', $outputCode);
+        
+        // Key nur setzen wenn das Feld existiert
+        if ($moduleKey && $this->hasKeyField('module')) {
+            $insertSql->setValue('key', $moduleKey);
+        }
+        
+        $insertSql->addGlobalCreateFields();
+        
+        try {
+            $insertSql->insert();
+        } catch (\rex_sql_exception $e) {
+            throw new \Exception('Fehler beim Erstellen des Moduls: ' . $e->getMessage());
         }
         
         // Assets installieren falls vorhanden
@@ -245,28 +251,34 @@ class InstallManager
             
             try {
                 $updateSql->update();
+                // Erfolgreich aktualisiert - Assets installieren und beenden
+                if ($templateKey) {
+                    $this->installTemplateAssets($repo, $templateName, $templateKey);
+                }
+                rex_delete_cache();
+                return true;
             } catch (\rex_sql_exception $e) {
                 throw new \Exception('Fehler beim Aktualisieren des Templates: ' . $e->getMessage());
             }
-        } else {
-            // Neues Template erstellen
-            $sql = rex_sql::factory(); // Neues SQL-Objekt für INSERT
-            $sql->setTable(rex::getTable('template'));
-            $sql->setValue('name', $templateTitle);
-            $sql->setValue('content', $templateCode);
-            
-            // Key nur setzen wenn das Feld existiert
-            if ($templateKey && $this->hasKeyField('template')) {
-                $sql->setValue('key', $templateKey);
-            }
-            
-            $sql->addGlobalCreateFields();
-            
-            try {
-                $sql->insert();
-            } catch (\rex_sql_exception $e) {
-                throw new \Exception('Fehler beim Erstellen des Templates: ' . $e->getMessage());
-            }
+        }
+        
+        // Wenn wir hier ankommen, Template neu erstellen
+        $insertSql = rex_sql::factory();
+        $insertSql->setTable(rex::getTable('template'));
+        $insertSql->setValue('name', $templateTitle);
+        $insertSql->setValue('content', $templateCode);
+        
+        // Key nur setzen wenn das Feld existiert
+        if ($templateKey && $this->hasKeyField('template')) {
+            $insertSql->setValue('key', $templateKey);
+        }
+        
+        $insertSql->addGlobalCreateFields();
+        
+        try {
+            $insertSql->insert();
+        } catch (\rex_sql_exception $e) {
+            throw new \Exception('Fehler beim Erstellen des Templates: ' . $e->getMessage());
         }
         
         // Assets installieren falls vorhanden
