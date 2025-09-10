@@ -293,7 +293,9 @@ class RepositoryManager
         
         // 5. Assets-Information hinzufügen
         $moduleData['has_assets'] = $this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/assets", $repo['branch']);
-        if ($moduleData['has_assets']) {
+        
+        // 6. README-Link hinzufügen falls README.md vorhanden
+        if ($this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/README.md", $repo['branch'])) {
             $moduleData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/modules/{$moduleName}/README.md";
         }
         
@@ -387,7 +389,9 @@ class RepositoryManager
         
         // 5. Assets-Information hinzufügen
         $templateData['has_assets'] = $this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/assets", $repo['branch']);
-        if ($templateData['has_assets']) {
+        
+        // 6. README-Link hinzufügen falls README.md vorhanden
+        if ($this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/README.md", $repo['branch'])) {
             $templateData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/templates/{$templateName}/README.md";
         }
         
