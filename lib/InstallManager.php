@@ -78,41 +78,50 @@ class InstallManager
         
         // Prüfen ob Modul bereits existiert (über Key oder Name)
         $existingModule = null;
-        if ($moduleKey) {
-            $sql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
-            if ($sql->getRows() > 0) {
-                $existingModule = $sql->getRow();
+        $updateByKey = false;
+        
+        if ($moduleKey && $this->hasKeyField('module')) {
+            $checkSql = rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
+            if ($checkSql->getRows() > 0) {
+                $existingModule = $checkSql->getRow();
+                $updateByKey = true;
             }
         }
         
         if (!$existingModule) {
-            $sql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE name = ?', [$moduleTitle]);
-            if ($sql->getRows() > 0) {
-                $existingModule = $sql->getRow();
+            $checkSql = rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . rex::getTable('module') . ' WHERE name = ?', [$moduleTitle]);
+            if ($checkSql->getRows() > 0) {
+                $existingModule = $checkSql->getRow();
+                $updateByKey = false;
             }
         }
         
         if ($existingModule && isset($existingModule['id'])) {
-            // Modul aktualisieren - verwende Key falls vorhanden, sonst ID
-            $sql->setTable(rex::getTable('module'));
-            if ($moduleKey && $this->hasKeyField('module')) {
-                $sql->setWhere(['key' => $moduleKey]);
+            // Modul aktualisieren
+            $updateSql = rex_sql::factory();
+            $updateSql->setTable(rex::getTable('module'));
+            
+            if ($updateByKey && $moduleKey) {
+                $updateSql->setWhere(['key' => $moduleKey]);
             } else {
-                $sql->setWhere(['id' => $existingModule['id']]);
+                $updateSql->setWhere(['id' => $existingModule['id']]);
             }
-            $sql->setValue('name', $moduleTitle);
-            $sql->setValue('input', $inputCode);
-            $sql->setValue('output', $outputCode);
+            
+            $updateSql->setValue('name', $moduleTitle);
+            $updateSql->setValue('input', $inputCode);
+            $updateSql->setValue('output', $outputCode);
             
             // Key nur setzen wenn das Feld existiert
             if ($moduleKey && $this->hasKeyField('module')) {
-                $sql->setValue('key', $moduleKey);
+                $updateSql->setValue('key', $moduleKey);
             }
             
-            $sql->addGlobalUpdateFields();
+            $updateSql->addGlobalUpdateFields();
             
             try {
-                $sql->update();
+                $updateSql->update();
             } catch (\rex_sql_exception $e) {
                 throw new \Exception('Fehler beim Aktualisieren des Moduls: ' . $e->getMessage());
             }
@@ -193,40 +202,49 @@ class InstallManager
         
         // Prüfen ob Template bereits existiert (über Key oder Name)
         $existingTemplate = null;
-        if ($templateKey) {
-            $sql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
-            if ($sql->getRows() > 0) {
-                $existingTemplate = $sql->getRow();
+        $updateByKey = false;
+        
+        if ($templateKey && $this->hasKeyField('template')) {
+            $checkSql = rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
+            if ($checkSql->getRows() > 0) {
+                $existingTemplate = $checkSql->getRow();
+                $updateByKey = true;
             }
         }
         
         if (!$existingTemplate) {
-            $sql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE name = ?', [$templateTitle]);
-            if ($sql->getRows() > 0) {
-                $existingTemplate = $sql->getRow();
+            $checkSql = rex_sql::factory();
+            $checkSql->setQuery('SELECT * FROM ' . rex::getTable('template') . ' WHERE name = ?', [$templateTitle]);
+            if ($checkSql->getRows() > 0) {
+                $existingTemplate = $checkSql->getRow();
+                $updateByKey = false;
             }
         }
         
         if ($existingTemplate && isset($existingTemplate['id'])) {
-            // Template aktualisieren - verwende Key falls vorhanden, sonst ID
-            $sql->setTable(rex::getTable('template'));
-            if ($templateKey && $this->hasKeyField('template')) {
-                $sql->setWhere(['key' => $templateKey]);
+            // Template aktualisieren
+            $updateSql = rex_sql::factory();
+            $updateSql->setTable(rex::getTable('template'));
+            
+            if ($updateByKey && $templateKey) {
+                $updateSql->setWhere(['key' => $templateKey]);
             } else {
-                $sql->setWhere(['id' => $existingTemplate['id']]);
+                $updateSql->setWhere(['id' => $existingTemplate['id']]);
             }
-            $sql->setValue('name', $templateTitle);
-            $sql->setValue('content', $templateCode);
+            
+            $updateSql->setValue('name', $templateTitle);
+            $updateSql->setValue('content', $templateCode);
             
             // Key nur setzen wenn das Feld existiert
             if ($templateKey && $this->hasKeyField('template')) {
-                $sql->setValue('key', $templateKey);
+                $updateSql->setValue('key', $templateKey);
             }
             
-            $sql->addGlobalUpdateFields();
+            $updateSql->addGlobalUpdateFields();
             
             try {
-                $sql->update();
+                $updateSql->update();
             } catch (\rex_sql_exception $e) {
                 throw new \Exception('Fehler beim Aktualisieren des Templates: ' . $e->getMessage());
             }
