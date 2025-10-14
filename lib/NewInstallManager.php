@@ -252,22 +252,11 @@ class NewInstallManager
         $targetDirectory = $classData['target_directory'] ?? 'lib';
         $filename = $classData['filename'] ?? $className . '.php';
         
-        // Ziel-Pfad bestimmen mit Verzeichnis-Struktur
-        if ($targetDirectory === 'lib') {
-            $basePath = \rex_path::addon('project') . 'lib/';
-        } else {
-            $basePath = \rex_path::addon('project') . $targetDirectory . '/';
-        }
+        // Ziel-Pfad bestimmen - IMMER in gitClasses Unterordner
+        $basePath = \rex_path::addon('project') . 'lib/gitClasses/';
         
-        // Wenn die Klasse aus einem Verzeichnis stammt, Verzeichnis-Struktur beibehalten
-        if (str_contains($classData['path'], '/')) {
-            // z.B. "classes/DemoHelper" -> "DemoHelper/"
-            $classDirName = basename($classData['path']);
-            $targetPath = $basePath . $classDirName . '/';
-        } else {
-            // Einzelne Datei direkt in lib/
-            $targetPath = $basePath;
-        }
+        // Jede Klasse bekommt ihren eigenen Ordner im gitClasses Verzeichnis
+        $targetPath = $basePath . $className . '/';
         
         // Verzeichnis erstellen falls nicht vorhanden
         if (!is_dir($targetPath)) {

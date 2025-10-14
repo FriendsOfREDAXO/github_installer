@@ -591,20 +591,13 @@ class RepositoryManager
     public function getClassesWithStatus(string $repoKey): array
     {
         $classes = $this->getClasses($repoKey);
-        $projectLibPath = \rex_path::addon('project') . 'lib/';
+        $gitClassesPath = \rex_path::addon('project') . 'lib/gitClasses/';
         
         foreach ($classes as $className => &$classData) {
             $filename = $classData['filename'] ?? $className . '.php';
             
-            // Prüfung mit Verzeichnis-Struktur
-            if (str_contains($classData['path'], '/')) {
-                // z.B. "classes/DemoHelper" -> "lib/DemoHelper/DemoHelper.php"
-                $classDirName = basename($classData['path']);
-                $targetFile = $projectLibPath . $classDirName . '/' . $filename;
-            } else {
-                // Einzelne Datei direkt in lib/
-                $targetFile = $projectLibPath . $filename;
-            }
+            // Jede Klasse bekommt ihren eigenen Ordner im gitClasses Verzeichnis
+            $targetFile = $gitClassesPath . $className . '/' . $filename;
             
             $classData['status'] = [
                 'installed' => file_exists($targetFile),

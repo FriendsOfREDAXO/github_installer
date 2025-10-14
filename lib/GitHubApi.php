@@ -240,4 +240,12 @@ class GitHubApi
         
         return $this->makeRequest($endpoint, 'PUT', $data);
     }
+    
+    /**
+     * Alias für createOrUpdateFile
+     */
+    public function uploadFile(string $owner, string $repo, string $path, string $content, string $message, string $branch = 'main'): array
+    {
+        return $this->createOrUpdateFile($owner, $repo, $path, $content, $message, $branch);
+    }
 }
