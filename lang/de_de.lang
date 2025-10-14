@@ -122,9 +122,9 @@ cache_no_cache = Keine Cache-Dateien gefunden
 # Settings
 settings_title = Einstellungen
 github_token = GitHub Personal Access Token
-github_token_help = Erforderlich für höhere Rate-Limits und private Repositories. <strong>Erforderliche Berechtigungen:</strong> Nur "repo" (vollständig) oder "public_repo" (nur öffentliche Repos). Alle anderen Berechtigungen (Codespaces, Copilot, GPG keys, Gists, etc.) sind <strong>nicht</strong> erforderlich.
+github_token_help = Erforderlich für höhere Rate-Limits und private Repositories. <strong>Erforderliche Berechtigungen:</strong> Repository permissions: "Contents" (Read-only für Installieren, Read and write für Upload). Alle anderen Berechtigungen sind <strong>nicht</strong> erforderlich.
 github_token_placeholder = GitHub Token eingeben (optional)
-github_token_create_info = Token erstellen: GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token (classic)
+github_token_create_info = Token erstellen: GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token
 cache_lifetime = Cache-Lebensdauer (Sekunden)
 cache_lifetime_help = Wie lange Repository-Daten gecacht werden sollen
 save_settings = Einstellungen speichern

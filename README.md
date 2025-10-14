@@ -106,37 +106,38 @@ Für das Hochladen zu GitHub:
 - **Upload-Funktionalität**: Zum Hochladen von Modulen/Templates/Classes zu GitHub
 
 #### Token erstellen
-1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
-2. **Generate new token** → **Generate new token (classic)**
+1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+2. **Generate new token**
 3. Token-Name vergeben (z.B. "REDAXO GitHub Installer")
-4. **Erforderliche Berechtigungen auswählen**:
+4. **Repository access** auswählen:
+   - **All repositories** (für alle Repositories) oder
+   - **Only select repositories** (für bestimmte Repositories)
+5. **Erforderliche Berechtigungen auswählen**:
 
-   **Nur zum Installieren (von öffentlichen/privaten Repositories):**
-   - ✅ `repo` → `public_repo` (für öffentliche Repositories)
-   - ✅ `repo` (vollständige Berechtigung, für private Repositories)
+   **Repository permissions:**
+   
+   **Nur zum Installieren (Lesen):**
+   - ✅ **Contents**: `Read-only` (Repository-Inhalte lesen)
+   - ✅ **Metadata**: `Read-only` (automatisch gesetzt)
    
    **Zum Installieren UND Hochladen:**
-   - ✅ `repo` (vollständige Repository-Berechtigung erforderlich)
-   
-   **Detaillierte Berechtigungen:**
-   - `repo` beinhaltet:
-     - ✅ `repo:status` - Commit-Status
-     - ✅ `repo_deployment` - Deployments
-     - ✅ `public_repo` - Öffentliche Repositories
-     - ✅ `repo:invite` - Einladungen
-     - ✅ `security_events` - Sicherheits-Events
+   - ✅ **Contents**: `Read and write` (Repository-Inhalte lesen und schreiben)
+   - ✅ **Metadata**: `Read-only` (automatisch gesetzt)
    
    **Alle anderen Berechtigungen sind NICHT erforderlich**:
-   - ❌ Block another user
-   - ❌ Codespaces user secrets
-   - ❌ Copilot Chat
-   - ❌ Email addresses
-   - ❌ GPG keys
-   - ❌ Gists
+   - ❌ Actions
+   - ❌ Administration
+   - ❌ Codespaces
+   - ❌ Commit statuses
+   - ❌ Discussions
+   - ❌ Environments
+   - ❌ Issues
+   - ❌ Pull requests
    - ❌ etc.
 
-5. Token generieren und **sofort kopieren** (wird nur einmal angezeigt!)
-6. Token in REDAXO einfügen: Backend → Addons → GitHub Installer → **Einstellungen**
+5. **Expiration** festlegen (empfohlen: 90 Tage oder weniger)
+6. Token generieren und **sofort kopieren** (wird nur einmal angezeigt!)
+7. Token in REDAXO einfügen: Backend → Addons → GitHub Installer → **Einstellungen**
 
 #### Sicherheitshinweise
 - ⚠️ Token niemals öffentlich teilen oder in Code committen
