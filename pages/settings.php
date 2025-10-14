@@ -34,7 +34,8 @@ $n['label'] = '<label for="github-token">' . $addon->i18n('github_token') . '</l
 $n['field'] = '<input type="password" id="github-token" name="config[github_token]" class="form-control" 
                       placeholder="' . $addon->i18n('github_token_placeholder') . '" 
                       value="' . rex_escape($addon->getConfig('github_token', '')) . '">
-               <p class="help-block">' . $addon->i18n('github_token_help') . '</p>';
+               <p class="help-block">' . $addon->i18n('github_token_help') . '</p>
+               <p class="help-block"><small><strong>' . $addon->i18n('github_token_create_info') . '</strong></small></p>';
 $formElements[] = $n;
 
 // Cache Lifetime

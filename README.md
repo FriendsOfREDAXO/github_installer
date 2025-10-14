@@ -98,10 +98,51 @@ Für das Hochladen zu GitHub:
    - **Branch**: Ziel-Branch (z.B. `main`)
    - **Author**: Dein Name für die Metadaten
 
-### 3. GitHub-Token für private Repositories (optional)
-1. GitHub → Settings → Developer settings → Personal access tokens
-2. Token mit Repository-Berechtigung erstellen
-3. Token in den Addon-Einstellungen hinterlegen
+### 3. GitHub-Token konfigurieren (optional, aber empfohlen)
+
+#### Wann wird ein Token benötigt?
+- **Private Repositories**: Zugriff auf nicht-öffentliche Repositories
+- **Höhere Rate-Limits**: GitHub erlaubt mehr API-Anfragen mit Token
+- **Upload-Funktionalität**: Zum Hochladen von Modulen/Templates/Classes zu GitHub
+
+#### Token erstellen
+1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Tokens (classic)**
+2. **Generate new token** → **Generate new token (classic)**
+3. Token-Name vergeben (z.B. "REDAXO GitHub Installer")
+4. **Erforderliche Berechtigungen auswählen**:
+
+   **Nur zum Installieren (von öffentlichen/privaten Repositories):**
+   - ✅ `repo` → `public_repo` (für öffentliche Repositories)
+   - ✅ `repo` (vollständige Berechtigung, für private Repositories)
+   
+   **Zum Installieren UND Hochladen:**
+   - ✅ `repo` (vollständige Repository-Berechtigung erforderlich)
+   
+   **Detaillierte Berechtigungen:**
+   - `repo` beinhaltet:
+     - ✅ `repo:status` - Commit-Status
+     - ✅ `repo_deployment` - Deployments
+     - ✅ `public_repo` - Öffentliche Repositories
+     - ✅ `repo:invite` - Einladungen
+     - ✅ `security_events` - Sicherheits-Events
+   
+   **Alle anderen Berechtigungen sind NICHT erforderlich**:
+   - ❌ Block another user
+   - ❌ Codespaces user secrets
+   - ❌ Copilot Chat
+   - ❌ Email addresses
+   - ❌ GPG keys
+   - ❌ Gists
+   - ❌ etc.
+
+5. Token generieren und **sofort kopieren** (wird nur einmal angezeigt!)
+6. Token in REDAXO einfügen: Backend → Addons → GitHub Installer → **Einstellungen**
+
+#### Sicherheitshinweise
+- ⚠️ Token niemals öffentlich teilen oder in Code committen
+- 🔒 Token mit minimalen Berechtigungen erstellen
+- 🔄 Token regelmäßig erneuern (Ablaufdatum setzen)
+- 🗑️ Ungenutzte Token löschen
 
 ## 🎯 Verwendung
 
