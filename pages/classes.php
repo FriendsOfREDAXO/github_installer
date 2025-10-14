@@ -82,14 +82,15 @@ if ($repo && isset($repositories[$repo])) {
                 $isInstalled = $classData['status']['installed'];
                 $statusBadge = $isInstalled ? '<span class="badge badge-success">Installiert</span>' : '<span class="badge badge-secondary">Neu</span>';
                 
-                // Action Button
+                // Action Buttons
+                $actionButtons = '';
                 if ($isInstalled) {
-                    $actionButton = '<button class="btn btn-warning btn-xs update-class-btn" 
+                    $actionButtons .= '<button class="btn btn-warning btn-xs update-class-btn" 
                                             data-class="' . rex_escape($className) . '" 
                                             data-repo="' . rex_escape($repo) . '">' . 
                                     $addon->i18n('classes_update') . '</button>';
                 } else {
-                    $actionButton = '<button class="btn btn-primary btn-xs install-class-btn" 
+                    $actionButtons .= '<button class="btn btn-primary btn-xs install-class-btn" 
                                             data-class="' . rex_escape($className) . '" 
                                             data-repo="' . rex_escape($repo) . '">' . 
                                     $addon->i18n('classes_install') . '</button>';
@@ -109,7 +110,7 @@ if ($repo && isset($repositories[$repo])) {
                     <td>' . rex_escape($classData['author'] ?? $addon->i18n('unknown')) . '</td>
                     <td>' . $infoLinks . '</td>
                     <td>' . $statusBadge . '</td>
-                    <td>' . $actionButton . '</td>
+                    <td>' . $actionButtons . '</td>
                 </tr>';
             }
 
@@ -222,6 +223,8 @@ jQuery(document).ready(function($) {
     $('.update-class-btn').on('click', function() {
         updateClassHandler($(this));
     });
+    
+
 });
 </script>
 

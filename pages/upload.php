@@ -1,94 +1,197 @@
 <?php
 
 use FriendsOfREDAXO\GitHubInstaller\GitHubApi;
+use FriendsOfREDAXO\GitHubInstaller\RepositoryManager;
+use FriendsOfREDAXO\GitHubInstaller\ClassManager;
 
 $func = rex_request('func', 'string');
 $type = rex_request('type', 'string', 'module');
 $addon = rex_addon::get('github_installer');
 
-// Upload-Einstellungen prüfen
-$uploadOwner = $addon->getConfig('upload_owner', '');
-$uploadRepo = $addon->getConfig('upload_repo', '');
-$uploadBranch = $addon->getConfig('upload_branch', 'main');
-$uploadAuthor = $addon->getConfig('upload_author', '');
+// Repository-Manager für Repository-Auswahl
+$repoManager = new RepositoryManager();
+$repositories = $repoManager->getRepositories();
 
-if (empty($uploadOwner) || empty($uploadRepo)) {
-    echo rex_view::warning($this->i18n('upload_settings_missing') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/settings']) . '">' . $this->i18n('settings') . '</a>');
+if (empty($repositories)) {
+    echo rex_view::warning($addon->i18n('upload_no_repos') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/repositories']) . '">' . $addon->i18n('repositories') . '</a>');
     return;
 }
 
 // Upload durchführen
 if ($func === 'upload' && rex_post('upload', 'bool')) {
-    $itemId = (int) rex_post('item_id', 'int');
-    $description = rex_post('description', 'string', '');
-    $version = rex_post('version', 'string', '1.0.0');
-    
-    if (!$itemId) {
-        echo rex_view::error($this->i18n('upload_missing_data'));
+    if ($type === 'class') {
+        // Klassen-Upload
+        $className = rex_post('class_name', 'string');
+        $targetRepo = rex_post('target_repo', 'string');
+        $commitMessage = rex_post('commit_message', 'string') ?: "Upload class {$className}";
+        
+        if (!$className || !$targetRepo) {
+            echo rex_view::error($addon->i18n('upload_missing_data'));
+        } else {
+            try {
+                if (!isset($repositories[$targetRepo])) {
+                    throw new Exception('Repository nicht gefunden');
+                }
+                
+                $classManager = new ClassManager();
+                $result = $classManager->uploadClass($targetRepo, $className, $commitMessage);
+                
+                if ($result) {
+                    $repo = $repositories[$targetRepo];
+                    echo rex_view::success($addon->i18n('upload_success', $className, $repo['owner'] . '/' . $repo['repo']));
+                }
+                
+            } catch (Exception $e) {
+                echo rex_view::error($addon->i18n('upload_error') . ': ' . $e->getMessage());
+            }
+        }
     } else {
-        try {
-            $github = new GitHubApi();
-            
-            // Repository testen
-            if (!$github->testRepository($uploadOwner, $uploadRepo, $uploadBranch)) {
-                throw new Exception("Repository {$uploadOwner}/{$uploadRepo} nicht erreichbar");
+        // Module/Template Upload
+        $itemId = (int) rex_post('item_id', 'int');
+        $targetRepo = rex_post('target_repo', 'string');
+        $description = rex_post('description', 'string', '');
+        $version = rex_post('version', 'string', '1.0.0');
+        
+        if (!$itemId || !$targetRepo) {
+            echo rex_view::error($addon->i18n('upload_missing_data'));
+        } else {
+            try {
+                if (!isset($repositories[$targetRepo])) {
+                    throw new Exception('Repository nicht gefunden');
+                }
+                
+                $repo = $repositories[$targetRepo];
+                $github = new GitHubApi();
+                
+                // Repository testen
+                if (!$github->testRepository($repo['owner'], $repo['repo'], $repo['branch'])) {
+                    throw new Exception("Repository {$repo['owner']}/{$repo['repo']} nicht erreichbar");
+                }
+                
+                if ($type === 'module') {
+                    $result = uploadModule($itemId, $github, $repo['owner'], $repo['repo'], $repo['branch'], $addon->getConfig('upload_author', ''), $description, $version);
+                } else {
+                    $result = uploadTemplate($itemId, $github, $repo['owner'], $repo['repo'], $repo['branch'], $addon->getConfig('upload_author', ''), $description, $version);
+                }
+                
+                echo rex_view::success($addon->i18n('upload_success', $result['name'], $repo['owner'] . '/' . $repo['repo']));
+                
+            } catch (Exception $e) {
+                echo rex_view::error($addon->i18n('upload_error') . ': ' . $e->getMessage());
             }
-            
-            if ($type === 'module') {
-                $result = uploadModule($itemId, $github, $uploadOwner, $uploadRepo, $uploadBranch, $uploadAuthor, $description, $version);
-            } else {
-                $result = uploadTemplate($itemId, $github, $uploadOwner, $uploadRepo, $uploadBranch, $uploadAuthor, $description, $version);
-            }
-            
-            echo rex_view::success($this->i18n('upload_success', $result['name'], $uploadOwner . '/' . $uploadRepo));
-            
-        } catch (Exception $e) {
-            echo rex_view::error($this->i18n('upload_error') . ': ' . $e->getMessage());
         }
     }
 }
 
 // Upload-Formular anzeigen
 if ($func === 'upload' && !rex_post('upload', 'bool')) {
-    $itemId = (int) rex_request('item_id', 'int');
+    // Standard-Repository bestimmen
+    $defaultRepo = '';
+    $uploadRepo = $addon->getConfig('upload_owner', '') . '/' . $addon->getConfig('upload_repo', '');
+    foreach ($repositories as $repoKey => $repoData) {
+        if ($repoKey === $uploadRepo) {
+            $defaultRepo = $repoKey;
+            break;
+        }
+    }
+    if (!$defaultRepo && !empty($repositories)) {
+        $defaultRepo = array_key_first($repositories);
+    }
     
-    if ($type === 'module') {
-        $sql = rex_sql::factory();
-        $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_module WHERE id = ?', [$itemId]);
-        $itemLabel = 'Modul';
+    if ($type === 'class') {
+        // Klassen-Upload Formular
+        $className = rex_request('class_name', 'string');
+        $classManager = new ClassManager();
+        $localClasses = $classManager->getLocalClasses();
+        
+        if (!isset($localClasses[$className])) {
+            echo rex_view::error($addon->i18n('item_not_found'));
+            return;
+        }
+        
+        $classData = $localClasses[$className];
+        
+        $content = '<fieldset>';
+        $content .= '<legend>Klasse hochladen: ' . rex_escape($classData['title'] ?? $className) . '</legend>';
+        
+        $formElements = [];
+        
+        // Repository-Auswahl
+        $n = [];
+        $n['label'] = '<label for="target_repo">' . $addon->i18n('upload_select_repo') . '</label>';
+        $select = '<select name="target_repo" id="target_repo" class="form-control" required>';
+        $select .= '<option value="">' . $addon->i18n('upload_choose_repo') . '</option>';
+        foreach ($repositories as $repoKey => $repoData) {
+            $selected = ($repoKey === $defaultRepo) ? ' selected="selected"' : '';
+            $select .= '<option value="' . rex_escape($repoKey) . '"' . $selected . '>' . rex_escape($repoData['display_name']) . ' (' . rex_escape($repoKey) . ')</option>';
+        }
+        $select .= '</select>';
+        $n['field'] = $select;
+        $formElements[] = $n;
+        
+        // Commit-Message
+        $n = [];
+        $n['label'] = '<label for="commit_message">' . $addon->i18n('upload_commit_message') . '</label>';
+        $n['field'] = '<input class="form-control" type="text" id="commit_message" name="commit_message" value="Update class ' . rex_escape($className) . '" />';
+        $formElements[] = $n;
+        
+        // Hidden Class Name
+        $content .= '<input type="hidden" name="class_name" value="' . rex_escape($className) . '" />';
+        
     } else {
-        $sql = rex_sql::factory();
-        $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_template WHERE id = ?', [$itemId]);
-        $itemLabel = 'Template';
+        // Module/Template Upload Formular
+        $itemId = (int) rex_request('item_id', 'int');
+        
+        if ($type === 'module') {
+            $sql = rex_sql::factory();
+            $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_module WHERE id = ?', [$itemId]);
+            $itemLabel = 'Modul';
+        } else {
+            $sql = rex_sql::factory();
+            $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_template WHERE id = ?', [$itemId]);
+            $itemLabel = 'Template';
+        }
+        
+        if ($sql->getRows() === 0) {
+            echo rex_view::error($addon->i18n('item_not_found'));
+            return;
+        }
+        
+        // Werte direkt über rex_sql Methoden abrufen
+        $itemName = $sql->getValue('name');
+        $itemKey = $sql->getValue('key');
+        
+        $content = '<fieldset>';
+        $content .= '<legend>' . $itemLabel . ' hochladen: ' . rex_escape($itemName ?: 'Unbekannt') . '</legend>';
+        
+        $formElements = [];
+        
+        // Repository-Auswahl
+        $n = [];
+        $n['label'] = '<label for="target_repo">' . $addon->i18n('upload_select_repo') . '</label>';
+        $select = '<select name="target_repo" id="target_repo" class="form-control" required>';
+        $select .= '<option value="">' . $addon->i18n('upload_choose_repo') . '</option>';
+        foreach ($repositories as $repoKey => $repoData) {
+            $selected = ($repoKey === $defaultRepo) ? ' selected="selected"' : '';
+            $select .= '<option value="' . rex_escape($repoKey) . '"' . $selected . '>' . rex_escape($repoData['display_name']) . ' (' . rex_escape($repoKey) . ')</option>';
+        }
+        $select .= '</select>';
+        $n['field'] = $select;
+        $formElements[] = $n;
+        
+        $n = [];
+        $n['label'] = '<label for="description">Beschreibung</label>';
+        $n['field'] = '<textarea class="form-control" id="description" name="description" rows="3" placeholder="Kurze Beschreibung des ' . $itemLabel . 's...">' . rex_escape($itemName ?: 'Unbekannt') . '</textarea>';
+        $formElements[] = $n;
+        
+        $n = [];
+        $n['label'] = '<label for="version">Version</label>';
+        $n['field'] = '<input class="form-control" type="text" id="version" name="version" value="1.0.0" />';
+        $formElements[] = $n;
+        
+        // Hidden Item ID
+        $content .= '<input type="hidden" name="item_id" value="' . $itemId . '" />';
     }
-    
-    if ($sql->getRows() === 0) {
-        echo rex_view::error($this->i18n('item_not_found'));
-        return;
-    }
-    
-    // Werte direkt über rex_sql Methoden abrufen
-    $itemName = $sql->getValue('name');
-    $itemKey = $sql->getValue('key');
-    
-    $content = '<fieldset>';
-    $content .= '<legend>' . $itemLabel . ' hochladen: ' . rex_escape($itemName ?: 'Unbekannt') . '</legend>';
-    
-    $content .= '<div class="alert alert-info">';
-    $content .= '<strong>Ziel-Repository:</strong> ' . rex_escape($uploadOwner . '/' . $uploadRepo) . ' (Branch: ' . rex_escape($uploadBranch) . ')';
-    $content .= '</div>';
-    
-    $formElements = [];
-    
-    $n = [];
-    $n['label'] = '<label for="description">Beschreibung</label>';
-    $n['field'] = '<textarea class="form-control" id="description" name="description" rows="3" placeholder="Kurze Beschreibung des ' . $itemLabel . 's...">' . rex_escape($itemName ?: 'Unbekannt') . '</textarea>';
-    $formElements[] = $n;
-    
-    $n = [];
-    $n['label'] = '<label for="version">Version</label>';
-    $n['field'] = '<input class="form-control" type="text" id="version" name="version" value="1.0.0" />';
-    $formElements[] = $n;
     
     $fragment = new rex_fragment();
     $fragment->setVar('elements', $formElements, false);
@@ -114,7 +217,6 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
     $output = $fragment->parse('core/page/section.php');
     
     echo '<form action="' . rex_url::currentBackendPage(['func' => 'upload', 'type' => $type]) . '" method="post">';
-    echo '<input type="hidden" name="item_id" value="' . $itemId . '" />';
     echo $output;
     echo '</form>';
     
@@ -124,7 +226,8 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
 // Tab-Navigation
 $tabs = [
     'module' => $this->i18n('modules'),
-    'template' => $this->i18n('templates')
+    'template' => $this->i18n('templates'),
+    'class' => $this->i18n('classes_title')
 ];
 
 $tabContent = '';
@@ -136,39 +239,79 @@ foreach ($tabs as $tabType => $tabLabel) {
 echo '<ul class="nav nav-tabs">' . $tabContent . '</ul>';
 
 // Item-Liste anzeigen
-$list = rex_list::factory("SELECT id, name, `key`, createdate, updatedate FROM rex_{$type} ORDER BY name");
-$list->addTableAttribute('class', 'table-striped');
-
-$list->setColumnLabel('name', $this->i18n('name'));
-$list->setColumnLabel('key', 'Key');
-$list->setColumnLabel('createdate', $this->i18n('created'));
-$list->setColumnLabel('updatedate', $this->i18n('updated'));
-
-$list->setColumnFormat('createdate', 'custom', function ($params) {
-    $value = $params['list']->getValue('createdate');
-    if (!$value || $value === '0000-00-00 00:00:00') {
-        return '-';
+if ($type === 'class') {
+    // Klassen-Liste
+    $classManager = new ClassManager();
+    $localClasses = $classManager->getLocalClasses();
+    
+    if (empty($localClasses)) {
+        echo rex_view::info($addon->i18n('no_local_classes'));
+    } else {
+        $tableContent = '<div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>' . $addon->i18n('class_name') . '</th>
+                        <th>' . $addon->i18n('class_title') . '</th>
+                        <th>' . $addon->i18n('class_version') . '</th>
+                        <th>' . $addon->i18n('class_author') . '</th>
+                        <th>' . $addon->i18n('class_installed') . '</th>
+                        <th>' . $addon->i18n('upload') . '</th>
+                    </tr>
+                </thead>
+                <tbody>';
+        
+        foreach ($localClasses as $className => $classData) {
+            $uploadUrl = rex_url::currentBackendPage(['func' => 'upload', 'class_name' => $className, 'type' => 'class']);
+            $tableContent .= '<tr>
+                <td><strong>' . rex_escape($className) . '</strong></td>
+                <td>' . rex_escape($classData['title'] ?? 'Unnamed Class') . '</td>
+                <td>' . rex_escape($classData['version'] ?? '1.0.0') . '</td>
+                <td>' . rex_escape($classData['author'] ?? $addon->i18n('unknown')) . '</td>
+                <td>' . rex_escape($classData['installed_at'] ?? $addon->i18n('unknown')) . '</td>
+                <td><a class="btn btn-primary btn-xs" href="' . $uploadUrl . '">' . $addon->i18n('upload') . '</a></td>
+            </tr>';
+        }
+        
+        $tableContent .= '</tbody></table></div>';
+        echo $tableContent;
     }
-    return rex_formatter::intlDateTime($value, [\IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT]);
-});
-$list->setColumnFormat('updatedate', 'custom', function ($params) {
-    $value = $params['list']->getValue('updatedate');
-    if (!$value || $value === '0000-00-00 00:00:00') {
-        return '-';
-    }
-    return rex_formatter::intlDateTime($value, [\IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT]);
-});
+} else {
+    // Module/Template Liste
+    $list = rex_list::factory("SELECT id, name, `key`, createdate, updatedate FROM rex_{$type} ORDER BY name");
+    $list->addTableAttribute('class', 'table-striped');
 
-// Upload-Button hinzufügen
-$list->addColumn('upload', $this->i18n('upload'), -1, ['<th>###VALUE###</th>', '<td>###VALUE###</td>']);
-$list->setColumnFormat('upload', 'custom', function ($params) use ($type) {
-    $itemId = $params['list']->getValue('id');
-    $url = rex_url::currentBackendPage(['func' => 'upload', 'item_id' => $itemId, 'type' => $type]);
-    return '<a class="btn btn-primary btn-xs" href="' . $url . '">' . 
-           rex_i18n::msg('upload') . '</a>';
-});
+    $list->setColumnLabel('name', $addon->i18n('name'));
+    $list->setColumnLabel('key', 'Key');
+    $list->setColumnLabel('createdate', $addon->i18n('created'));
+    $list->setColumnLabel('updatedate', $addon->i18n('updated'));
 
-echo $list->get();
+    $list->setColumnFormat('createdate', 'custom', function ($params) {
+        $value = $params['list']->getValue('createdate');
+        if (!$value || $value === '0000-00-00 00:00:00') {
+            return '-';
+        }
+        return rex_formatter::intlDateTime($value, [\IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT]);
+    });
+    $list->setColumnFormat('updatedate', 'custom', function ($params) {
+        $value = $params['list']->getValue('updatedate');
+        if (!$value || $value === '0000-00-00 00:00:00') {
+            return '-';
+        }
+        return rex_formatter::intlDateTime($value, [\IntlDateFormatter::SHORT, \IntlDateFormatter::SHORT]);
+    });
+
+    // Upload-Button hinzufügen
+    $list->addColumn('upload', $addon->i18n('upload'), -1, ['<th>###VALUE###</th>', '<td>###VALUE###</td>']);
+    $list->setColumnFormat('upload', 'custom', function ($params) use ($type) {
+        $itemId = $params['list']->getValue('id');
+        $url = rex_url::currentBackendPage(['func' => 'upload', 'item_id' => $itemId, 'type' => $type]);
+        return '<a class="btn btn-primary btn-xs" href="' . $url . '">' . 
+               rex_i18n::msg('upload') . '</a>';
+    });
+
+    echo $list->get();
+}
 
 // Helper Functions
 function uploadModule($moduleId, $github, $owner, $repo, $branch, $author, $description, $version) {
