@@ -98,10 +98,52 @@ Für das Hochladen zu GitHub:
    - **Branch**: Ziel-Branch (z.B. `main`)
    - **Author**: Dein Name für die Metadaten
 
-### 3. GitHub-Token für private Repositories (optional)
-1. GitHub → Settings → Developer settings → Personal access tokens
-2. Token mit Repository-Berechtigung erstellen
-3. Token in den Addon-Einstellungen hinterlegen
+### 3. GitHub-Token konfigurieren (optional, aber empfohlen)
+
+#### Wann wird ein Token benötigt?
+- **Private Repositories**: Zugriff auf nicht-öffentliche Repositories
+- **Höhere Rate-Limits**: GitHub erlaubt mehr API-Anfragen mit Token
+- **Upload-Funktionalität**: Zum Hochladen von Modulen/Templates/Classes zu GitHub
+
+#### Token erstellen
+1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens**
+2. **Generate new token**
+3. Token-Name vergeben (z.B. "REDAXO GitHub Installer")
+4. **Repository access** auswählen:
+   - **All repositories** (für alle Repositories) oder
+   - **Only select repositories** (für bestimmte Repositories)
+5. **Erforderliche Berechtigungen auswählen**:
+
+   **Repository permissions:**
+   
+   **Nur zum Installieren (Lesen):**
+   - ✅ **Contents**: `Read-only` (Repository-Inhalte lesen)
+   - ✅ **Metadata**: `Read-only` (automatisch gesetzt)
+   
+   **Zum Installieren UND Hochladen:**
+   - ✅ **Contents**: `Read and write` (Repository-Inhalte lesen und schreiben)
+   - ✅ **Metadata**: `Read-only` (automatisch gesetzt)
+   
+   **Alle anderen Berechtigungen sind NICHT erforderlich**:
+   - ❌ Actions
+   - ❌ Administration
+   - ❌ Codespaces
+   - ❌ Commit statuses
+   - ❌ Discussions
+   - ❌ Environments
+   - ❌ Issues
+   - ❌ Pull requests
+   - ❌ etc.
+
+5. **Expiration** festlegen (empfohlen: 90 Tage oder weniger)
+6. Token generieren und **sofort kopieren** (wird nur einmal angezeigt!)
+7. Token in REDAXO einfügen: Backend → Addons → GitHub Installer → **Einstellungen**
+
+#### Sicherheitshinweise
+- ⚠️ Token niemals öffentlich teilen oder in Code committen
+- 🔒 Token mit minimalen Berechtigungen erstellen
+- 🔄 Token regelmäßig erneuern (Ablaufdatum setzen)
+- 🗑️ Ungenutzte Token löschen
 
 ## 🎯 Verwendung
 
