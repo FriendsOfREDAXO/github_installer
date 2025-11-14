@@ -127,7 +127,13 @@ if ($repo && isset($repositories[$repo])) {
                            onclick="return confirm(\'' . $addon->i18n('templates_update_confirm', rex_escape($template['name'])) . '\')">
                             <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('templates_update') . '
                         </a>';
-                    $statusBadge = '<span class="label label-success">Installiert</span>';
+                    
+                    // Check if update is available
+                    if (!empty($template['update_available'])) {
+                        $statusBadge = '<span class="label label-warning"><i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('template_update_available') . '</span>';
+                    } else {
+                        $statusBadge = '<span class="label label-success">Installiert</span>';
+                    }
                 } else {
                     // Install-Button für neue Templates
                     $actionUrl = rex_url::currentBackendPage([
@@ -153,10 +159,24 @@ if ($repo && isset($repositories[$repo])) {
                     $assetsInfo .= '<a href="' . rex_escape($template['readme_url']) . '" target="_blank" class="btn btn-xs btn-default" title="README auf GitHub öffnen"><i class="rex-icon rex-icon-open-in-new"></i> README</a>';
                 }
                 
+                // Installation date info
+                $installDateInfo = '';
+                if (!empty($template['install_info'])) {
+                    $installedAt = $template['install_info']['installed_at'];
+                    $githubLastUpdate = $template['install_info']['github_last_update'];
+                    
+                    if ($installedAt) {
+                        $installDateInfo .= '<small><strong>' . $addon->i18n('template_installed_at') . ':</strong> ' . date('d.m.Y H:i', strtotime($installedAt)) . '</small><br>';
+                    }
+                    if ($githubLastUpdate) {
+                        $installDateInfo .= '<small><strong>' . $addon->i18n('template_last_github_update') . ':</strong> ' . date('d.m.Y H:i', strtotime($githubLastUpdate)) . '</small>';
+                    }
+                }
+                
                 $tableContent .= '<tr>
                     <td><strong>' . rex_escape($template['name']) . '</strong><br>' . $statusBadge . '</td>
                     <td>' . rex_escape($template['title']) . '</td>
-                    <td>' . rex_escape($template['description'] ?: $addon->i18n('no_description')) . '</td>
+                    <td>' . rex_escape($template['description'] ?: $addon->i18n('no_description')) . ($installDateInfo ? '<br><br>' . $installDateInfo : '') . '</td>
                     <td>' . rex_escape($template['version']) . '</td>
                     <td>' . rex_escape($template['author'] ?: $addon->i18n('unknown')) . '</td>
                     <td>' . $assetsInfo . '</td>

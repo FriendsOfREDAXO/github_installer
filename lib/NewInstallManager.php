@@ -9,11 +9,13 @@ class NewInstallManager
 {
     private GitHubApi $github;
     private RepositoryManager $repoManager;
+    private InstallationTracker $tracker;
 
     public function __construct()
     {
         $this->github = new GitHubApi();
         $this->repoManager = new RepositoryManager();
+        $this->tracker = new InstallationTracker();
     }
 
     /**
@@ -93,6 +95,28 @@ class NewInstallManager
         try {
             $sql->insert();
             
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "modules/{$moduleName}",
+                $repo['branch']
+            );
+            
+            // Track installation
+            if ($moduleKey) {
+                $this->tracker->saveInstallation(
+                    'module',
+                    $moduleKey,
+                    $moduleTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "modules/{$moduleName}",
+                    $commitInfo
+                );
+            }
+            
             // REDAXO Cache löschen
             \rex_delete_cache();
             
@@ -167,6 +191,28 @@ class NewInstallManager
 
         try {
             $sql->insert();
+            
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "templates/{$templateName}",
+                $repo['branch']
+            );
+            
+            // Track installation
+            if ($templateKey) {
+                $this->tracker->saveInstallation(
+                    'template',
+                    $templateKey,
+                    $templateTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "templates/{$templateName}",
+                    $commitInfo
+                );
+            }
             
             // REDAXO Cache löschen
             \rex_delete_cache();
@@ -275,6 +321,32 @@ class NewInstallManager
         // Datei schreiben
         if (!\rex_file::put($targetFile, $classData['content'])) {
             throw new \Exception("Konnte Klasse-Datei nicht schreiben: {$targetFile}");
+        }
+        
+        // Get repository info for tracking
+        $repositories = $this->repoManager->getRepositories();
+        if (isset($repositories[$repoKey])) {
+            $repo = $repositories[$repoKey];
+            
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "classes/{$className}",
+                $repo['branch']
+            );
+            
+            // Track installation
+            $this->tracker->saveInstallation(
+                'class',
+                $className,
+                $classData['title'] ?? $className,
+                $repo['owner'],
+                $repo['repo'],
+                $repo['branch'],
+                "classes/{$className}",
+                $commitInfo
+            );
         }
         
         error_log("GitHub Installer - Class '{$className}' successfully installed to {$targetFile}");

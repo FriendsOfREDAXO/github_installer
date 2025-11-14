@@ -9,11 +9,13 @@ class UpdateManager
 {
     private GitHubApi $github;
     private RepositoryManager $repoManager;
+    private InstallationTracker $tracker;
 
     public function __construct()
     {
         $this->github = new GitHubApi();
         $this->repoManager = new RepositoryManager();
+        $this->tracker = new InstallationTracker();
     }
 
     /**
@@ -153,6 +155,28 @@ class UpdateManager
         try {
             $updateSql->update();
             
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "modules/{$moduleName}",
+                $repo['branch']
+            );
+            
+            // Update installation tracking
+            if ($moduleKey) {
+                $this->tracker->saveInstallation(
+                    'module',
+                    $moduleKey,
+                    $moduleTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "modules/{$moduleName}",
+                    $commitInfo
+                );
+            }
+            
             // REDAXO Cache löschen
             \rex_delete_cache();
             
@@ -286,6 +310,28 @@ class UpdateManager
         try {
             $updateSql->update();
             
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "templates/{$templateName}",
+                $repo['branch']
+            );
+            
+            // Update installation tracking
+            if ($templateKey) {
+                $this->tracker->saveInstallation(
+                    'template',
+                    $templateKey,
+                    $templateTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "templates/{$templateName}",
+                    $commitInfo
+                );
+            }
+            
             // REDAXO Cache löschen
             \rex_delete_cache();
             
@@ -343,6 +389,32 @@ class UpdateManager
         
         // Backup löschen bei erfolgreichem Neu-Laden
         unlink($backupFile);
+        
+        // Get repository info for tracking
+        $repositories = $this->repoManager->getRepositories();
+        if (isset($repositories[$repoKey])) {
+            $repo = $repositories[$repoKey];
+            
+            // Get last commit information from GitHub
+            $commitInfo = $this->github->getLastCommit(
+                $repo['owner'],
+                $repo['repo'],
+                "classes/{$className}",
+                $repo['branch']
+            );
+            
+            // Update installation tracking
+            $this->tracker->saveInstallation(
+                'class',
+                $className,
+                $classData['title'] ?? $className,
+                $repo['owner'],
+                $repo['repo'],
+                $repo['branch'],
+                "classes/{$className}",
+                $commitInfo
+            );
+        }
         
         error_log("GitHub Installer - Class '{$className}' successfully reloaded at {$targetFile}");
         return true;

@@ -461,11 +461,26 @@ class RepositoryManager
     public function getModulesWithStatus(string $repoKey): array
     {
         $modules = $this->getModules($repoKey);
+        $tracker = new InstallationTracker();
+        $github = new GitHubApi();
         
         foreach ($modules as &$module) {
             $status = $this->getModuleInstallStatus($module['key'] ?? '', $module['title'] ?? $module['name']);
             $module['status'] = $status['status']; // 'new', 'installed', 'updatable'
             $module['existing_data'] = $status['existing_data'];
+            
+            // Add installation tracking info if installed
+            if ($status['status'] === 'installed' && !empty($module['key'])) {
+                $installInfo = $tracker->getInstallation('module', $module['key']);
+                $module['install_info'] = $installInfo;
+                
+                // Check for updates
+                if ($installInfo) {
+                    $updateCheck = $tracker->checkForUpdate('module', $module['key'], $github);
+                    $module['update_available'] = $updateCheck['available'];
+                    $module['update_info'] = $updateCheck;
+                }
+            }
         }
         
         return $modules;
@@ -477,11 +492,26 @@ class RepositoryManager
     public function getTemplatesWithStatus(string $repoKey): array
     {
         $templates = $this->getTemplates($repoKey);
+        $tracker = new InstallationTracker();
+        $github = new GitHubApi();
         
         foreach ($templates as &$template) {
             $status = $this->getTemplateInstallStatus($template['key'] ?? '', $template['title'] ?? $template['name']);
             $template['status'] = $status['status'];
             $template['existing_data'] = $status['existing_data'];
+            
+            // Add installation tracking info if installed
+            if ($status['status'] === 'installed' && !empty($template['key'])) {
+                $installInfo = $tracker->getInstallation('template', $template['key']);
+                $template['install_info'] = $installInfo;
+                
+                // Check for updates
+                if ($installInfo) {
+                    $updateCheck = $tracker->checkForUpdate('template', $template['key'], $github);
+                    $template['update_available'] = $updateCheck['available'];
+                    $template['update_info'] = $updateCheck;
+                }
+            }
         }
         
         return $templates;
@@ -592,17 +622,33 @@ class RepositoryManager
     {
         $classes = $this->getClasses($repoKey);
         $gitClassesPath = \rex_path::addon('project') . 'lib/gitClasses/';
+        $tracker = new InstallationTracker();
+        $github = new GitHubApi();
         
         foreach ($classes as $className => &$classData) {
             $filename = $classData['filename'] ?? $className . '.php';
             
             // Jede Klasse bekommt ihren eigenen Ordner im gitClasses Verzeichnis
             $targetFile = $gitClassesPath . $className . '/' . $filename;
+            $isInstalled = file_exists($targetFile);
             
             $classData['status'] = [
-                'installed' => file_exists($targetFile),
+                'installed' => $isInstalled,
                 'target_path' => $targetFile
             ];
+            
+            // Add installation tracking info if installed
+            if ($isInstalled) {
+                $installInfo = $tracker->getInstallation('class', $className);
+                $classData['install_info'] = $installInfo;
+                
+                // Check for updates
+                if ($installInfo) {
+                    $updateCheck = $tracker->checkForUpdate('class', $className, $github);
+                    $classData['update_available'] = $updateCheck['available'];
+                    $classData['update_info'] = $updateCheck;
+                }
+            }
         }
         
         return $classes;

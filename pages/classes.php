@@ -80,7 +80,13 @@ if ($repo && isset($repositories[$repo])) {
 
             foreach ($classes as $className => $classData) {
                 $isInstalled = $classData['status']['installed'];
-                $statusBadge = $isInstalled ? '<span class="badge badge-success">Installiert</span>' : '<span class="badge badge-secondary">Neu</span>';
+                
+                // Check if update is available
+                if ($isInstalled && !empty($classData['update_available'])) {
+                    $statusBadge = '<span class="badge badge-warning"><i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('class_update_available') . '</span>';
+                } else {
+                    $statusBadge = $isInstalled ? '<span class="badge badge-success">Installiert</span>' : '<span class="badge badge-secondary">Neu</span>';
+                }
                 
                 // Action Buttons
                 $actionButtons = '';
@@ -102,10 +108,24 @@ if ($repo && isset($repositories[$repo])) {
                     $infoLinks .= '<a href="' . rex_escape($classData['readme_url']) . '" target="_blank" class="btn btn-xs btn-default" title="README auf GitHub öffnen"><i class="rex-icon rex-icon-open-in-new"></i> README</a>';
                 }
                 
+                // Installation date info
+                $installDateInfo = '';
+                if (!empty($classData['install_info'])) {
+                    $installedAt = $classData['install_info']['installed_at'];
+                    $githubLastUpdate = $classData['install_info']['github_last_update'];
+                    
+                    if ($installedAt) {
+                        $installDateInfo .= '<br><small><strong>' . $addon->i18n('class_installed_at') . ':</strong> ' . date('d.m.Y H:i', strtotime($installedAt)) . '</small>';
+                    }
+                    if ($githubLastUpdate) {
+                        $installDateInfo .= '<br><small><strong>' . $addon->i18n('class_last_github_update') . ':</strong> ' . date('d.m.Y H:i', strtotime($githubLastUpdate)) . '</small>';
+                    }
+                }
+                
                 $tableContent .= '<tr>
                     <td><strong>' . rex_escape($className) . '</strong></td>
                     <td>' . rex_escape($classData['title'] ?? 'Unnamed Class') . '</td>
-                    <td>' . rex_escape($classData['description'] ?? $addon->i18n('no_description')) . '</td>
+                    <td>' . rex_escape($classData['description'] ?? $addon->i18n('no_description')) . $installDateInfo . '</td>
                     <td>' . rex_escape($classData['version'] ?? '1.0.0') . '</td>
                     <td>' . rex_escape($classData['author'] ?? $addon->i18n('unknown')) . '</td>
                     <td>' . $infoLinks . '</td>

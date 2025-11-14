@@ -54,6 +54,9 @@ module_assets_target = Ziel-Verzeichnis
 module_actions = Aktionen
 module_details = Details
 module_info = Modul-Informationen
+module_installed_at = Installiert am
+module_last_github_update = Letzte Aktualisierung auf GitHub
+module_update_available = Update verfügbar
 
 # Classes
 classes_title = Klassen
@@ -80,6 +83,9 @@ class_target_directory = Ziel-Verzeichnis
 class_actions = Aktionen
 class_details = Details
 class_info = Klassen-Informationen
+class_installed_at = Installiert am
+class_last_github_update = Letzte Aktualisierung auf GitHub
+class_update_available = Update verfügbar
 
 # Templates
 templates_title = Templates
@@ -107,6 +113,9 @@ template_assets_target = Ziel-Verzeichnis
 template_actions = Aktionen
 template_details = Details
 template_info = Template-Informationen
+template_installed_at = Installiert am
+template_last_github_update = Letzte Aktualisierung auf GitHub
+template_update_available = Update verfügbar
 
 # Cache Management
 cache_title = Cache-Verwaltung

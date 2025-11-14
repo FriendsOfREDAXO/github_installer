@@ -248,4 +248,38 @@ class GitHubApi
     {
         return $this->createOrUpdateFile($owner, $repo, $path, $content, $message, $branch);
     }
+    
+    /**
+     * Get last commit information for a specific path
+     * 
+     * @param string $owner Repository owner
+     * @param string $repo Repository name
+     * @param string $path Path to file or directory
+     * @param string $branch Branch name
+     * @return array|null Commit information or null if not found
+     */
+    public function getLastCommit(string $owner, string $repo, string $path, string $branch = 'main'): ?array
+    {
+        try {
+            $endpoint = "repos/{$owner}/{$repo}/commits?path={$path}&sha={$branch}&per_page=1";
+            $commits = $this->makeRequest($endpoint);
+            
+            if (empty($commits) || !is_array($commits)) {
+                return null;
+            }
+            
+            $commit = $commits[0];
+            
+            return [
+                'sha' => $commit['sha'] ?? '',
+                'date' => $commit['commit']['author']['date'] ?? '',
+                'message' => $commit['commit']['message'] ?? '',
+                'author' => $commit['commit']['author']['name'] ?? '',
+                'author_email' => $commit['commit']['author']['email'] ?? '',
+            ];
+            
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
 }
