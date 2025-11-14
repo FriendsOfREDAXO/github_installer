@@ -2,8 +2,7 @@
 
 /**
  * Uninstall script for GitHub Installer
- * Removes database table
+ * Removes database table using rex_sql_table
  */
 
-$sql = rex_sql::factory();
-$sql->setQuery('DROP TABLE IF EXISTS `' . rex::getTable('github_installer_items') . '`');
+rex_sql_table::get(rex::getTable('github_installer_items'))->drop();

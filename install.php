@@ -2,28 +2,25 @@
 
 /**
  * Installation script for GitHub Installer
- * Creates database table for tracking installations
+ * Creates database table for tracking installations using rex_sql_table
  */
 
-$sql = rex_sql::factory();
+$table = rex_sql_table::get(rex::getTable('github_installer_items'));
 
-// Create table for tracking installations
-$sql->setQuery('
-    CREATE TABLE IF NOT EXISTS `' . rex::getTable('github_installer_items') . '` (
-        `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-        `item_type` varchar(50) NOT NULL,
-        `item_key` varchar(255) NOT NULL,
-        `item_name` varchar(255) NOT NULL,
-        `repo_owner` varchar(255) NOT NULL,
-        `repo_name` varchar(255) NOT NULL,
-        `repo_branch` varchar(255) NOT NULL DEFAULT "main",
-        `repo_path` varchar(500) NOT NULL,
-        `installed_at` datetime NOT NULL,
-        `github_last_update` datetime DEFAULT NULL,
-        `github_last_commit_sha` varchar(255) DEFAULT NULL,
-        `github_last_commit_message` text DEFAULT NULL,
-        PRIMARY KEY (`id`),
-        UNIQUE KEY `unique_item` (`item_type`, `item_key`),
-        KEY `item_type` (`item_type`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-');
+$table
+    ->addColumn(new rex_sql_column('id', 'int(10) unsigned', false, null, 'auto_increment'))
+    ->addColumn(new rex_sql_column('item_type', 'varchar(50)', false))
+    ->addColumn(new rex_sql_column('item_key', 'varchar(255)', false))
+    ->addColumn(new rex_sql_column('item_name', 'varchar(255)', false))
+    ->addColumn(new rex_sql_column('repo_owner', 'varchar(255)', false))
+    ->addColumn(new rex_sql_column('repo_name', 'varchar(255)', false))
+    ->addColumn(new rex_sql_column('repo_branch', 'varchar(255)', false, 'main'))
+    ->addColumn(new rex_sql_column('repo_path', 'varchar(500)', false))
+    ->addColumn(new rex_sql_column('installed_at', 'datetime', false))
+    ->addColumn(new rex_sql_column('github_last_update', 'datetime', true))
+    ->addColumn(new rex_sql_column('github_last_commit_sha', 'varchar(255)', true))
+    ->addColumn(new rex_sql_column('github_last_commit_message', 'text', true))
+    ->setPrimaryKey('id')
+    ->addIndex(new rex_sql_index('unique_item', ['item_type', 'item_key'], rex_sql_index::UNIQUE))
+    ->addIndex(new rex_sql_index('item_type', ['item_type']))
+    ->ensure();
