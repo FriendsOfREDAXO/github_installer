@@ -248,4 +248,36 @@ class GitHubApi
     {
         return $this->createOrUpdateFile($owner, $repo, $path, $content, $message, $branch);
     }
+    
+    /**
+     * Letztes Commit-Datum für eine Datei/Ordner abrufen
+     * 
+     * @param string $owner Repository Owner
+     * @param string $repo Repository Name
+     * @param string $path Pfad zur Datei/Ordner
+     * @param string $branch Branch Name
+     * @return string|null Datum im Format 'Y-m-d H:i:s' oder null bei Fehler
+     */
+    public function getLastCommitDate(string $owner, string $repo, string $path, string $branch = 'main'): ?string
+    {
+        try {
+            $endpoint = "repos/{$owner}/{$repo}/commits";
+            $endpoint .= "?path=" . urlencode($path);
+            $endpoint .= "&sha=" . urlencode($branch);
+            $endpoint .= "&per_page=1";
+            
+            $commits = $this->makeRequest($endpoint);
+            
+            if (!empty($commits) && isset($commits[0]['commit']['committer']['date'])) {
+                $githubDate = $commits[0]['commit']['committer']['date'];
+                // GitHub gibt ISO 8601 zurück: 2024-11-16T10:30:00Z
+                $timestamp = strtotime($githubDate);
+                return date('Y-m-d H:i:s', $timestamp);
+            }
+        } catch (\Exception $e) {
+            // Bei Fehler null zurückgeben
+        }
+        
+        return null;
+    }
 }

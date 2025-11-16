@@ -100,7 +100,10 @@ class RepositoryManager
     }
     
     /**
-     * Module aus Repository abrufen
+     * Module mit Status-Information abrufen
+     * 
+     * @param string $key Repository-Key
+     * @return array Module mit Status (installed/new/update_available)
      */
     public function getModules(string $key): array
     {
@@ -170,6 +173,90 @@ class RepositoryManager
             }
         } catch (\Exception $e) {
             // templates-Ordner nicht vorhanden
+        }
+        
+        return $templates;
+    }
+    
+    /**
+     * Templates mit GitHub-Sync-Status abrufen
+     * 
+     * @param string $key Repository-Key
+     * @return array Templates mit Installationsstatus und GitHub-Sync-Informationen
+     */
+    public function getTemplatesWithStatus(string $key): array
+    {
+        $templates = $this->getTemplates($key);
+        $repositories = $this->getRepositories();
+        
+        if (!isset($repositories[$key])) {
+            return [];
+        }
+        
+        $repo = $repositories[$key];
+        
+        foreach ($templates as &$template) {
+            // Installationsstatus prüfen
+            $status = $this->getTemplateInstallStatus($template['key'], $template['title']);
+            $template['status'] = $status['status'];
+            
+            // GitHub-Commit-Datum holen
+            $template['github_date'] = null;
+            $template['db_date'] = null;
+            $template['update_available'] = false;
+            
+            if ($status['status'] === 'installed' && $template['key']) {
+                // Cache prüfen
+                $cached = GitHubItemCache::get('template', $template['key']);
+                
+                if ($cached && GitHubItemCache::isCacheValid('template', $template['key'], 3600)) {
+                    // Aus Cache holen
+                    $template['github_date'] = $cached['github_last_update'];
+                } else {
+                    // Von GitHub API holen
+                    $template['github_date'] = $this->github->getLastCommitDate(
+                        $repo['owner'],
+                        $repo['repo'],
+                        "templates/{$template['name']}",
+                        $repo['branch']
+                    );
+                    
+                    // Cache aktualisieren
+                    if ($template['github_date']) {
+                        GitHubItemCache::save(
+                            'template',
+                            $template['key'],
+                            $template['title'],
+                            $repo['owner'],
+                            $repo['repo'],
+                            $repo['branch'],
+                            "templates/{$template['name']}",
+                            $template['github_date']
+                        );
+                    }
+                }
+                
+                // DB updatedate holen
+                $sql = \rex_sql::factory();
+                $sql->setQuery(
+                    'SELECT updatedate FROM ' . \rex::getTable('template') . ' WHERE id = ?',
+                    [$status['existing_data']['id']]
+                );
+                
+                if ($sql->getRows() > 0) {
+                    $template['db_date'] = $sql->getValue('updatedate');
+                }
+                
+                // Vergleich: Ist GitHub neuer als DB?
+                if ($template['github_date'] && $template['db_date']) {
+                    $githubTimestamp = strtotime($template['github_date']);
+                    $dbTimestamp = strtotime($template['db_date']);
+                    
+                    if ($githubTimestamp > $dbTimestamp) {
+                        $template['update_available'] = true;
+                    }
+                }
+            }
         }
         
         return $templates;
@@ -456,35 +543,87 @@ class RepositoryManager
     }
     
     /**
-     * Module mit Status-Informationen abrufen
+     * Module mit GitHub-Sync-Status abrufen
+     * 
+     * @param string $key Repository-Key
+     * @return array Module mit Installationsstatus und GitHub-Sync-Informationen
      */
-    public function getModulesWithStatus(string $repoKey): array
+    public function getModulesWithStatus(string $key): array
     {
-        $modules = $this->getModules($repoKey);
+        $modules = $this->getModules($key);
+        $repositories = $this->getRepositories();
+        
+        if (!isset($repositories[$key])) {
+            return [];
+        }
+        
+        $repo = $repositories[$key];
         
         foreach ($modules as &$module) {
-            $status = $this->getModuleInstallStatus($module['key'] ?? '', $module['title'] ?? $module['name']);
-            $module['status'] = $status['status']; // 'new', 'installed', 'updatable'
-            $module['existing_data'] = $status['existing_data'];
+            // Installationsstatus prüfen
+            $status = $this->getModuleInstallStatus($module['key'], $module['title']);
+            $module['status'] = $status['status'];
+            
+            // GitHub-Commit-Datum holen
+            $module['github_date'] = null;
+            $module['db_date'] = null;
+            $module['update_available'] = false;
+            
+            if ($status['status'] === 'installed' && $module['key']) {
+                // Cache prüfen
+                $cached = GitHubItemCache::get('module', $module['key']);
+                
+                if ($cached && GitHubItemCache::isCacheValid('module', $module['key'], 3600)) {
+                    // Aus Cache holen
+                    $module['github_date'] = $cached['github_last_update'];
+                } else {
+                    // Von GitHub API holen
+                    $module['github_date'] = $this->github->getLastCommitDate(
+                        $repo['owner'],
+                        $repo['repo'],
+                        "modules/{$module['name']}",
+                        $repo['branch']
+                    );
+                    
+                    // Cache aktualisieren
+                    if ($module['github_date']) {
+                        GitHubItemCache::save(
+                            'module',
+                            $module['key'],
+                            $module['title'],
+                            $repo['owner'],
+                            $repo['repo'],
+                            $repo['branch'],
+                            "modules/{$module['name']}",
+                            $module['github_date']
+                        );
+                    }
+                }
+                
+                // DB updatedate holen
+                $sql = \rex_sql::factory();
+                $sql->setQuery(
+                    'SELECT updatedate FROM ' . \rex::getTable('module') . ' WHERE id = ?',
+                    [$status['existing_data']['id']]
+                );
+                
+                if ($sql->getRows() > 0) {
+                    $module['db_date'] = $sql->getValue('updatedate');
+                }
+                
+                // Vergleich: Ist GitHub neuer als DB?
+                if ($module['github_date'] && $module['db_date']) {
+                    $githubTimestamp = strtotime($module['github_date']);
+                    $dbTimestamp = strtotime($module['db_date']);
+                    
+                    if ($githubTimestamp > $dbTimestamp) {
+                        $module['update_available'] = true;
+                    }
+                }
+            }
         }
         
         return $modules;
-    }
-    
-    /**
-     * Templates mit Status-Informationen abrufen
-     */
-    public function getTemplatesWithStatus(string $repoKey): array
-    {
-        $templates = $this->getTemplates($repoKey);
-        
-        foreach ($templates as &$template) {
-            $status = $this->getTemplateInstallStatus($template['key'] ?? '', $template['title'] ?? $template['name']);
-            $template['status'] = $status['status'];
-            $template['existing_data'] = $status['existing_data'];
-        }
-        
-        return $templates;
     }
     
     /**

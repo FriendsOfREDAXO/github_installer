@@ -93,6 +93,27 @@ class NewInstallManager
         try {
             $sql->insert();
             
+            // GitHub-Cache speichern
+            if ($moduleKey) {
+                $githubDate = $this->github->getLastCommitDate(
+                    $repo['owner'],
+                    $repo['repo'],
+                    "modules/{$moduleName}",
+                    $repo['branch']
+                );
+                
+                GitHubItemCache::save(
+                    'module',
+                    $moduleKey,
+                    $moduleTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "modules/{$moduleName}",
+                    $githubDate
+                );
+            }
+            
             // REDAXO Cache löschen
             \rex_delete_cache();
             
@@ -167,6 +188,27 @@ class NewInstallManager
 
         try {
             $sql->insert();
+            
+            // GitHub-Cache speichern
+            if ($templateKey) {
+                $githubDate = $this->github->getLastCommitDate(
+                    $repo['owner'],
+                    $repo['repo'],
+                    "templates/{$templateName}",
+                    $repo['branch']
+                );
+                
+                GitHubItemCache::save(
+                    'template',
+                    $templateKey,
+                    $templateTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "templates/{$templateName}",
+                    $githubDate
+                );
+            }
             
             // REDAXO Cache löschen
             \rex_delete_cache();
