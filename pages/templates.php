@@ -102,6 +102,7 @@ if ($repo && isset($repositories[$repo])) {
                             <th>' . $addon->i18n('template_description') . '</th>
                             <th>' . $addon->i18n('template_version') . '</th>
                             <th>' . $addon->i18n('template_author') . '</th>
+                            <th>' . $addon->i18n('template_sync_status') . '</th>
                             <th>' . $addon->i18n('template_assets') . '</th>
                             <th class="rex-table-action">' . $addon->i18n('template_actions') . '</th>
                         </tr>
@@ -113,21 +114,62 @@ if ($repo && isset($repositories[$repo])) {
                 $actionUrl = '';
                 $actionButton = '';
                 $statusBadge = '';
+                $syncStatus = '';
                 
                 if ($template['status'] === 'installed') {
-                    // Update-Button für existierende Templates
-                    $actionUrl = rex_url::currentBackendPage([
-                        'repo' => $repo,
-                        'func' => 'update',
-                        'template' => $template['name'],
-                        'key' => $template['key']
-                    ]);
-                    $actionButton = '<a href="' . $actionUrl . '" 
-                           class="btn btn-warning btn-xs"
-                           onclick="return confirm(\'' . $addon->i18n('templates_update_confirm', rex_escape($template['name'])) . '\')">
-                            <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('templates_update') . '
-                        </a>';
+                    // Status-Badge
                     $statusBadge = '<span class="label label-success">Installiert</span>';
+                    
+                    // Sync-Status mit Datums-Vergleich
+                    if ($template['update_available']) {
+                        $syncStatus = '<span class="label label-warning" title="Update verfügbar"><i class="rex-icon fa-cloud-download"></i> Update</span><br>';
+                        if ($template['github_date']) {
+                            $githubTimestamp = strtotime($template['github_date']);
+                            if ($githubTimestamp > 0) {
+                                $syncStatus .= '<small class="text-muted">GitHub: ' . date('d.m.Y H:i', $githubTimestamp) . '</small><br>';
+                            }
+                        }
+                        if ($template['db_date']) {
+                            $dbTimestamp = strtotime($template['db_date']);
+                            if ($dbTimestamp > 0) {
+                                $syncStatus .= '<small class="text-muted">REDAXO: ' . date('d.m.Y H:i', $dbTimestamp) . '</small>';
+                            }
+                        }
+                        
+                        // Update-Button
+                        $actionUrl = rex_url::currentBackendPage([
+                            'repo' => $repo,
+                            'func' => 'update',
+                            'template' => $template['name'],
+                            'key' => $template['key']
+                        ]);
+                        $actionButton = '<a href="' . $actionUrl . '" 
+                               class="btn btn-warning btn-xs"
+                               onclick="return confirm(\'' . $addon->i18n('templates_update_confirm', rex_escape($template['name'])) . '\')">
+                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('templates_update') . '
+                            </a>';
+                    } else {
+                        $syncStatus = '<span class="label label-success"><i class="rex-icon fa-check"></i> Aktuell</span><br>';
+                        if ($template['db_date']) {
+                            $dbTimestamp = strtotime($template['db_date']);
+                            if ($dbTimestamp > 0) {
+                                $syncStatus .= '<small class="text-muted">' . date('d.m.Y H:i', $dbTimestamp) . '</small>';
+                            }
+                        }
+                        
+                        // Neu laden Button
+                        $actionUrl = rex_url::currentBackendPage([
+                            'repo' => $repo,
+                            'func' => 'update',
+                            'template' => $template['name'],
+                            'key' => $template['key']
+                        ]);
+                        $actionButton = '<a href="' . $actionUrl . '" 
+                               class="btn btn-default btn-xs"
+                               onclick="return confirm(\'' . $addon->i18n('templates_update_confirm', rex_escape($template['name'])) . '\')">
+                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('templates_reload') . '
+                            </a>';
+                    }
                 } else {
                     // Install-Button für neue Templates
                     $actionUrl = rex_url::currentBackendPage([
@@ -142,6 +184,14 @@ if ($repo && isset($repositories[$repo])) {
                             <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('templates_install') . '
                         </a>';
                     $statusBadge = '<span class="label label-default">Neu</span>';
+                    
+                    // Sync-Status für neue Templates
+                    if ($template['github_date']) {
+                        $githubTimestamp = strtotime($template['github_date']);
+                        if ($githubTimestamp > 0) {
+                            $syncStatus = '<small class="text-muted">GitHub: ' . date('d.m.Y H:i', $githubTimestamp) . '</small>';
+                        }
+                    }
                 }
                 
                 // Assets und README-Info
@@ -159,6 +209,7 @@ if ($repo && isset($repositories[$repo])) {
                     <td>' . rex_escape($template['description'] ?: $addon->i18n('no_description')) . '</td>
                     <td>' . rex_escape($template['version']) . '</td>
                     <td>' . rex_escape($template['author'] ?: $addon->i18n('unknown')) . '</td>
+                    <td>' . $syncStatus . '</td>
                     <td>' . $assetsInfo . '</td>
                     <td class="rex-table-action">' . $actionButton . '</td>
                 </tr>';

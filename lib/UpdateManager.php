@@ -149,9 +149,33 @@ class UpdateManager
         } else {
             $updateSql->setWhere('id = :whereid', ['whereid' => $status['existing_data']['id']]);
         }
+        
+        // WICHTIG: Update-Datum setzen für GitHub-Sync
+        $updateSql->addGlobalUpdateFields();
 
         try {
             $updateSql->update();
+            
+            // GitHub-Cache aktualisieren
+            if ($moduleKey) {
+                $githubDate = $this->github->getLastCommitDate(
+                    $repo['owner'],
+                    $repo['repo'],
+                    "modules/{$moduleName}",
+                    $repo['branch']
+                );
+                
+                GitHubItemCache::save(
+                    'module',
+                    $moduleKey,
+                    $moduleTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "modules/{$moduleName}",
+                    $githubDate
+                );
+            }
             
             // REDAXO Cache löschen
             \rex_delete_cache();
@@ -282,9 +306,33 @@ class UpdateManager
         } else {
             $updateSql->setWhere('id = :whereid', ['whereid' => $status['existing_data']['id']]);
         }
+        
+        // WICHTIG: Update-Datum setzen für GitHub-Sync
+        $updateSql->addGlobalUpdateFields();
 
         try {
             $updateSql->update();
+            
+            // GitHub-Cache aktualisieren
+            if ($templateKey) {
+                $githubDate = $this->github->getLastCommitDate(
+                    $repo['owner'],
+                    $repo['repo'],
+                    "templates/{$templateName}",
+                    $repo['branch']
+                );
+                
+                GitHubItemCache::save(
+                    'template',
+                    $templateKey,
+                    $templateTitle,
+                    $repo['owner'],
+                    $repo['repo'],
+                    $repo['branch'],
+                    "templates/{$templateName}",
+                    $githubDate
+                );
+            }
             
             // REDAXO Cache löschen
             \rex_delete_cache();
