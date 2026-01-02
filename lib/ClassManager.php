@@ -119,6 +119,9 @@ class ClassManager
             throw new \Exception('Class directory not found: ' . $classDir);
         }
         
+        // Repository-Struktur sicherstellen
+        $this->ensureRepositoryStructure($repo['owner'], $repo['repo'], $repo['branch'] ?? 'main');
+        
         // Alle Dateien im Klassen-Verzeichnis hochladen
         $files = $this->getClassFiles($classDir);
         
@@ -144,7 +147,37 @@ class ClassManager
         return true;
     }
     
-
+    /**
+     * Repository-Struktur sicherstellen
+     * Erstellt README-Dateien in den Hauptordnern, falls diese noch nicht existieren
+     */
+    private function ensureRepositoryStructure(string $owner, string $repo, string $branch): void
+    {
+        $folders = [
+            'modules' => "# Module\n\nDieser Ordner enthält REDAXO-Module.\n\nJedes Modul hat einen eigenen Unterordner mit:\n- `input.php` - Eingabe-Template\n- `output.php` - Ausgabe-Template\n- `config.yml` - Modul-Konfiguration\n",
+            'templates' => "# Templates\n\nDieser Ordner enthält REDAXO-Templates.\n\nJedes Template hat einen eigenen Unterordner mit:\n- `template.php` - Template-Code\n- `config.yml` - Template-Konfiguration\n",
+            'classes' => "# Classes\n\nDieser Ordner enthält PHP-Klassen.\n\nKlassen werden automatisch von REDAXO geladen.\n",
+        ];
+        
+        foreach ($folders as $folder => $readmeContent) {
+            try {
+                // Prüfen ob Ordner bereits existiert (indem wir versuchen, die README zu lesen)
+                if (!$this->github->fileExists($owner, $repo, "{$folder}/README.md", $branch)) {
+                    // README im Hauptordner erstellen
+                    $this->github->createOrUpdateFile(
+                        $owner,
+                        $repo,
+                        "{$folder}/README.md",
+                        $readmeContent,
+                        "Repository-Struktur: {$folder} Ordner erstellt",
+                        $branch
+                    );
+                }
+            } catch (\Exception $e) {
+                // Fehler ignorieren - wenn es schon existiert ist das OK
+            }
+        }
+    }
     
     /**
      * Alle lokalen Klassen abrufen
