@@ -214,8 +214,13 @@ class GitHubApi
     /**
      * Datei auf GitHub erstellen oder aktualisieren
      */
-    public function createOrUpdateFile(string $owner, string $repo, string $path, string $content, string $message, string $branch = 'main'): array
+    public function createOrUpdateFile(string $owner, string $repo, string $path, string $content, string $message = '', string $branch = 'main'): array
     {
+        // Fallback für Commit-Message
+        if (empty($message)) {
+            $message = "Datei {$path} aktualisiert";
+        }
+        
         // Erst prüfen ob Datei bereits existiert
         $sha = null;
         try {
@@ -238,13 +243,13 @@ class GitHubApi
             $data['sha'] = $sha;
         }
         
-        return $this->makeRequest($endpoint, 'PUT', $data);
+        return $this->makeRequest($endpoint, 'PUT', $data, false);
     }
     
     /**
-     * Alias für createOrUpdateFile
+     * Alias für createOrUpdateFile (legacy support)
      */
-    public function uploadFile(string $owner, string $repo, string $path, string $content, string $message, string $branch = 'main'): array
+    public function uploadFile(string $owner, string $repo, string $path, string $content, string $message = '', string $branch = 'main'): array
     {
         return $this->createOrUpdateFile($owner, $repo, $path, $content, $message, $branch);
     }

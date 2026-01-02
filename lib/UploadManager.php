@@ -31,13 +31,17 @@ class UploadManager
         $moduleKey = $moduleData['key'] ?: 'module_' . $moduleId;
         
         try {
+            // Ordnerstruktur sicherstellen (falls Repository leer ist)
+            $this->ensureRepositoryStructure($owner, $repo, $branch);
+            
             // Hauptverzeichnis erstellen
             $this->githubApi->createOrUpdateFile(
                 $owner,
                 $repo,
-                $branch,
                 "modules/{$moduleKey}/README.md",
-                "# Modul: {$moduleData['name']}\n\n{$moduleData['name']}"
+                "# Modul: {$moduleData['name']}\n\n{$moduleData['name']}",
+                "Modul {$moduleKey} hinzugefügt",
+                $branch
             );
             
             // Input-Template
@@ -45,9 +49,10 @@ class UploadManager
                 $this->githubApi->createOrUpdateFile(
                     $owner,
                     $repo,
-                    $branch,
                     "modules/{$moduleKey}/input.php",
-                    $moduleData['input']
+                    $moduleData['input'],
+                    "Modul {$moduleKey}: input.php aktualisiert",
+                    $branch
                 );
             }
             
@@ -56,9 +61,10 @@ class UploadManager
                 $this->githubApi->createOrUpdateFile(
                     $owner,
                     $repo,
-                    $branch,
                     "modules/{$moduleKey}/output.php",
-                    $moduleData['output']
+                    $moduleData['output'],
+                    "Modul {$moduleKey}: output.php aktualisiert",
+                    $branch
                 );
             }
             
@@ -67,9 +73,10 @@ class UploadManager
             $this->githubApi->createOrUpdateFile(
                 $owner,
                 $repo,
-                $branch,
                 "modules/{$moduleKey}/config.yml",
-                $config
+                $config,
+                "Modul {$moduleKey}: config.yml aktualisiert",
+                $branch
             );
             
             // Assets hochladen
@@ -99,13 +106,17 @@ class UploadManager
         $templateKey = $templateData['key'] ?: 'template_' . $templateId;
         
         try {
+            // Ordnerstruktur sicherstellen (falls Repository leer ist)
+            $this->ensureRepositoryStructure($owner, $repo, $branch);
+            
             // Hauptverzeichnis erstellen
             $this->githubApi->createOrUpdateFile(
                 $owner,
                 $repo,
-                $branch,
                 "templates/{$templateKey}/README.md",
-                "# Template: {$templateData['name']}\n\n{$templateData['name']}"
+                "# Template: {$templateData['name']}\n\n{$templateData['name']}",
+                "Template {$templateKey} hinzugefügt",
+                $branch
             );
             
             // Template-Datei
@@ -113,9 +124,10 @@ class UploadManager
                 $this->githubApi->createOrUpdateFile(
                     $owner,
                     $repo,
-                    $branch,
                     "templates/{$templateKey}/template.php",
-                    $templateData['content']
+                    $templateData['content'],
+                    "Template {$templateKey}: template.php aktualisiert",
+                    $branch
                 );
             }
             
@@ -124,9 +136,10 @@ class UploadManager
             $this->githubApi->createOrUpdateFile(
                 $owner,
                 $repo,
-                $branch,
                 "templates/{$templateKey}/config.yml",
-                $config
+                $config,
+                "Template {$templateKey}: config.yml aktualisiert",
+                $branch
             );
             
             // Assets hochladen
@@ -160,7 +173,46 @@ class UploadManager
                 $githubPath = "{$type}/{$key}/assets/" . str_replace('\\', '/', $relativePath);
                 
                 $content = file_get_contents($file->getPathname());
-                $this->githubApi->createOrUpdateFile($owner, $repo, $branch, $githubPath, $content);
+                $this->githubApi->createOrUpdateFile(
+                    $owner,
+                    $repo,
+                    $githubPath,
+                    $content,
+                    "Assets für {$type}/{$key} aktualisiert",
+                    $branch
+                );
+            }
+        }
+    }
+    
+    /**
+     * Repository-Struktur sicherstellen
+     * Erstellt README-Dateien in den Hauptordnern, falls diese noch nicht existieren
+     */
+    private function ensureRepositoryStructure(string $owner, string $repo, string $branch): void
+    {
+        $folders = [
+            'modules' => "# Module\n\nDieser Ordner enthält REDAXO-Module.\n\nJedes Modul hat einen eigenen Unterordner mit:\n- `input.php` - Eingabe-Template\n- `output.php` - Ausgabe-Template\n- `config.yml` - Modul-Konfiguration\n",
+            'templates' => "# Templates\n\nDieser Ordner enthält REDAXO-Templates.\n\nJedes Template hat einen eigenen Unterordner mit:\n- `template.php` - Template-Code\n- `config.yml` - Template-Konfiguration\n",
+            'classes' => "# Classes\n\nDieser Ordner enthält PHP-Klassen.\n\nKlassen werden automatisch von REDAXO geladen.\n",
+        ];
+        
+        foreach ($folders as $folder => $readmeContent) {
+            try {
+                // Prüfen ob Ordner bereits existiert (indem wir versuchen, die README zu lesen)
+                if (!$this->githubApi->fileExists($owner, $repo, "{$folder}/README.md", $branch)) {
+                    // README im Hauptordner erstellen
+                    $this->githubApi->createOrUpdateFile(
+                        $owner,
+                        $repo,
+                        "{$folder}/README.md",
+                        $readmeContent,
+                        "Repository-Struktur: {$folder} Ordner erstellt",
+                        $branch
+                    );
+                }
+            } catch (\Exception $e) {
+                // Fehler ignorieren - wenn es schon existiert ist das OK
             }
         }
     }
