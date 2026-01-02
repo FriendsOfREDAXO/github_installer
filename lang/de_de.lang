@@ -27,6 +27,7 @@ github_installer_repo_error_not_found = Repository auf GitHub nicht gefunden
 github_installer_repo_test_connection = Verbindung testen
 github_installer_repo_connection_ok = Verbindung erfolgreich
 github_installer_repo_connection_failed = Verbindung fehlgeschlagen
+github_installer_no_repositories = Keine Repositories konfiguriert
 
 # Modules
 github_installer_modules_title = Module

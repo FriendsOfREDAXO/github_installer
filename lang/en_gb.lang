@@ -19,12 +19,15 @@ github_installer_repo_remove_confirm = Really remove repository?
 github_installer_repo_added_success = Repository added successfully
 github_installer_repo_updated_success = Repository updated successfully
 github_installer_repo_removed_success = Repository removed successfully
+github_installer_repo_added = Added
+github_installer_repo_actions = Actions
 github_installer_repo_error_exists = Repository already exists
 github_installer_repo_error_invalid = Invalid repository format
 github_installer_repo_error_not_found = Repository not found on GitHub
 github_installer_repo_test_connection = Test Connection
 github_installer_repo_connection_ok = Connection successful
 github_installer_repo_connection_failed = Connection failed
+github_installer_no_repositories = No repositories configured
 
 # Modules
 github_installer_modules_title = Modules
