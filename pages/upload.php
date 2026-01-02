@@ -307,7 +307,7 @@ if ($type === 'class') {
         $itemId = $params['list']->getValue('id');
         $url = rex_url::currentBackendPage(['func' => 'upload', 'item_id' => $itemId, 'type' => $type]);
         return '<a class="btn btn-primary btn-xs" href="' . $url . '">' . 
-               rex_i18n::msg('upload') . '</a>';
+               rex_i18n::msg('github_installer_upload') . '</a>';
     });
 
     echo $list->get();
