@@ -9,7 +9,7 @@ $repoManager = new RepositoryManager();
 $repositories = $addon->getConfig('repositories', []);
 
 if (empty($repositories)) {
-    echo rex_view::warning($addon->i18n('classes_no_repos') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/repositories']) . '">' . $addon->i18n('repositories') . '</a>');
+    echo rex_view::warning($addon->i18n('github_installer_classes_no_repos') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/repositories']) . '">' . $addon->i18n('github_installer_repositories') . '</a>');
     return;
 }
 
@@ -22,10 +22,10 @@ if (!$repo) {
     $formElements = [];
 
     $n = [];
-    $n['label'] = '<label for="classes-repo-select">' . $addon->i18n('classes_select_repo') . '</label>';
+    $n['label'] = '<label for="classes-repo-select">' . $addon->i18n('github_installer_classes_select_repo') . '</label>';
 
     $select = '<select name="repo" id="classes-repo-select" class="form-control">';
-    $select .= '<option value="">' . $addon->i18n('classes_choose_repo') . '</option>';
+    $select .= '<option value="">' . $addon->i18n('github_installer_classes_choose_repo') . '</option>';
 
     foreach ($repositories as $repoKey => $repoData) {
         $selected = ($repo === $repoKey) ? ' selected="selected"' : '';
@@ -38,7 +38,7 @@ if (!$repo) {
 
     // Submit Button
     $n = [];
-    $n['field'] = '<button class="btn btn-primary" type="submit">' . $addon->i18n('classes_loading') . '</button>';
+    $n['field'] = '<button class="btn btn-primary" type="submit">' . $addon->i18n('github_installer_classes_loading') . '</button>';
     $formElements[] = $n;
 
     $fragment = new rex_fragment();
@@ -48,7 +48,7 @@ if (!$repo) {
     // Repository-Formular
     $fragment = new rex_fragment();
     $fragment->setVar('class', 'edit');
-    $fragment->setVar('title', $addon->i18n('classes_select_repo'));
+    $fragment->setVar('title', $addon->i18n('github_installer_classes_select_repo'));
     $fragment->setVar('body', $content, false);
     $repoForm = $fragment->parse('core/page/section.php');
 
@@ -66,14 +66,14 @@ if ($repo && isset($repositories[$repo])) {
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th>' . $addon->i18n('class_name') . '</th>
-                            <th>' . $addon->i18n('class_title') . '</th>
-                            <th>' . $addon->i18n('class_description') . '</th>
-                            <th>' . $addon->i18n('class_version') . '</th>
-                            <th>' . $addon->i18n('class_author') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_name') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_title') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_description') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_version') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_author') . '</th>
                             <th>Info</th>
                             <th>Status</th>
-                            <th>' . $addon->i18n('class_actions') . '</th>
+                            <th>' . $addon->i18n('github_installer_class_actions') . '</th>
                         </tr>
                     </thead>
                     <tbody>';
@@ -88,12 +88,12 @@ if ($repo && isset($repositories[$repo])) {
                     $actionButtons .= '<button class="btn btn-warning btn-xs update-class-btn" 
                                             data-class="' . rex_escape($className) . '" 
                                             data-repo="' . rex_escape($repo) . '">' . 
-                                    $addon->i18n('classes_update') . '</button>';
+                                    $addon->i18n('github_installer_classes_update') . '</button>';
                 } else {
                     $actionButtons .= '<button class="btn btn-primary btn-xs install-class-btn" 
                                             data-class="' . rex_escape($className) . '" 
                                             data-repo="' . rex_escape($repo) . '">' . 
-                                    $addon->i18n('classes_install') . '</button>';
+                                    $addon->i18n('github_installer_classes_install') . '</button>';
                 }
                 
                 // Info-Links (README)
@@ -105,9 +105,9 @@ if ($repo && isset($repositories[$repo])) {
                 $tableContent .= '<tr>
                     <td><strong>' . rex_escape($className) . '</strong></td>
                     <td>' . rex_escape($classData['title'] ?? 'Unnamed Class') . '</td>
-                    <td>' . rex_escape($classData['description'] ?? $addon->i18n('no_description')) . '</td>
+                    <td>' . rex_escape($classData['description'] ?? $addon->i18n('github_installer_no_description')) . '</td>
                     <td>' . rex_escape($classData['version'] ?? '1.0.0') . '</td>
-                    <td>' . rex_escape($classData['author'] ?? $addon->i18n('unknown')) . '</td>
+                    <td>' . rex_escape($classData['author'] ?? $addon->i18n('github_installer_unknown')) . '</td>
                     <td>' . $infoLinks . '</td>
                     <td>' . $statusBadge . '</td>
                     <td>' . $actionButtons . '</td>
@@ -125,11 +125,11 @@ if ($repo && isset($repositories[$repo])) {
             echo $repoInfo . $tableContent;
             
         } else {
-            echo rex_view::info($addon->i18n('classes_no_classes'));
+            echo rex_view::info($addon->i18n('github_installer_classes_no_classes'));
         }
         
     } catch (Exception $e) {
-        echo rex_view::error($addon->i18n('error_occurred') . ': ' . rex_escape($e->getMessage()));
+        echo rex_view::error($addon->i18n('github_installer_error_occurred') . ': ' . rex_escape($e->getMessage()));
     }
 }
 ?>
@@ -158,14 +158,14 @@ jQuery(document).ready(function($) {
                       '<strong>Erfolg!</strong> ' + data.message + '</div>')
                       .insertBefore('.table-responsive').hide().fadeIn();
                       
-                    button.prop('disabled', false).text('<?php echo $addon->i18n('classes_update'); ?>');
+                    button.prop('disabled', false).text('<?php echo $addon->i18n('github_installer_classes_update'); ?>');
                 } else {
                     alert('Fehler: ' + data.message);
-                    button.prop('disabled', false).text('<?php echo $addon->i18n('classes_update'); ?>');
+                    button.prop('disabled', false).text('<?php echo $addon->i18n('github_installer_classes_update'); ?>');
                 }
             }, 'json').fail(function() {
                 alert('Fehler beim Aktualisieren der Klasse');
-                button.prop('disabled', false).text('<?php echo $addon->i18n('classes_update'); ?>');
+                button.prop('disabled', false).text('<?php echo $addon->i18n('github_installer_classes_update'); ?>');
             });
         }
     }
@@ -195,7 +195,7 @@ jQuery(document).ready(function($) {
                     // Button zu "Neu laden" ändern
                     button.removeClass('btn-primary install-class-btn')
                           .addClass('btn-warning update-class-btn')
-                          .text('<?php echo $addon->i18n('classes_update'); ?>')
+                          .text('<?php echo $addon->i18n('github_installer_classes_update'); ?>')
                           .prop('disabled', false);
                     
                     // Status-Badge ändern
@@ -210,11 +210,11 @@ jQuery(document).ready(function($) {
                     });
                 } else {
                     alert('Fehler: ' + data.message);
-                    button.prop('disabled', false).text('<?php echo $addon->i18n('classes_install'); ?>');
+                    button.prop('disabled', false).text('<?php echo $addon->i18n('github_installer_classes_install'); ?>');
                 }
             }, 'json').fail(function() {
                 alert('Fehler beim Installieren der Klasse');
-                button.prop('disabled', false).text('<?php echo $addon->i18n('classes_install'); ?>');
+                button.prop('disabled', false).text('<?php echo $addon->i18n('github_installer_classes_install'); ?>');
             });
         }
     });

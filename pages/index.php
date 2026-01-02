@@ -8,6 +8,6 @@
 
 $addon = rex_addon::get('github_installer');
 
-echo rex_view::title($addon->i18n('title'));
+echo rex_view::title($addon->i18n('github_installer_title'));
 
 rex_be_controller::includeCurrentPageSubPath();

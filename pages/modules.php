@@ -21,9 +21,9 @@ if ($func === 'install' && $repo) {
     if ($module) {
         try {
             $installManager->installNewModule($repo, $module, $key);
-            echo rex_view::success($addon->i18n('modules_installed_success'));
+            echo rex_view::success($addon->i18n('github_installer_modules_installed_success'));
         } catch (Exception $e) {
-            echo rex_view::error($addon->i18n('modules_install_error') . ': ' . $e->getMessage());
+            echo rex_view::error($addon->i18n('github_installer_modules_install_error') . ': ' . $e->getMessage());
         }
     }
 }
@@ -35,9 +35,9 @@ if ($func === 'update' && $repo) {
     if ($module) {
         try {
             $updateManager->updateModule($repo, $module, $key);
-            echo rex_view::success($addon->i18n('modules_updated_success'));
+            echo rex_view::success($addon->i18n('github_installer_modules_updated_success'));
         } catch (Exception $e) {
-            echo rex_view::error($addon->i18n('modules_update_error') . ': ' . $e->getMessage());
+            echo rex_view::error($addon->i18n('github_installer_modules_update_error') . ': ' . $e->getMessage());
         }
     }
 }
@@ -46,7 +46,7 @@ if ($func === 'update' && $repo) {
 $repositories = $repoManager->getRepositories();
 
 if (empty($repositories)) {
-    echo rex_view::warning($addon->i18n('modules_no_repos'));
+    echo rex_view::warning($addon->i18n('github_installer_modules_no_repos'));
     return;
 }
 
@@ -55,10 +55,10 @@ $content = '';
 $formElements = [];
 
 $n = [];
-$n['label'] = '<label for="modules-repo-select">' . $addon->i18n('modules_select_repo') . '</label>';
+$n['label'] = '<label for="modules-repo-select">' . $addon->i18n('github_installer_modules_select_repo') . '</label>';
 
 $select = '<select name="repo" id="modules-repo-select" class="form-control">';
-$select .= '<option value="">' . $addon->i18n('modules_choose_repo') . '</option>';
+$select .= '<option value="">' . $addon->i18n('github_installer_modules_choose_repo') . '</option>';
 
 foreach ($repositories as $repoKey => $repoData) {
     $selected = ($repo === $repoKey) ? ' selected="selected"' : '';
@@ -71,7 +71,7 @@ $formElements[] = $n;
 
 // Submit Button
 $n = [];
-$n['field'] = '<button class="btn btn-primary" type="submit">' . $addon->i18n('modules_loading') . '</button>';
+$n['field'] = '<button class="btn btn-primary" type="submit">' . $addon->i18n('github_installer_modules_loading') . '</button>';
 $formElements[] = $n;
 
 $fragment = new rex_fragment();
@@ -81,7 +81,7 @@ $content = $fragment->parse('core/form/container.php');
 // Repository-Formular
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit');
-$fragment->setVar('title', $addon->i18n('modules_select_repo'));
+$fragment->setVar('title', $addon->i18n('github_installer_modules_select_repo'));
 $fragment->setVar('body', $content, false);
 $repoForm = $fragment->parse('core/page/section.php');
 
@@ -97,14 +97,14 @@ if ($repo && isset($repositories[$repo])) {
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
-                            <th>' . $addon->i18n('module_name') . '</th>
-                            <th>' . $addon->i18n('module_title') . '</th>
-                            <th>' . $addon->i18n('module_description') . '</th>
-                            <th>' . $addon->i18n('module_version') . '</th>
-                            <th>' . $addon->i18n('module_author') . '</th>
-                            <th>' . $addon->i18n('module_sync_status') . '</th>
-                            <th>' . $addon->i18n('module_assets') . '</th>
-                            <th class="rex-table-action">' . $addon->i18n('module_actions') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_name') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_title') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_description') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_version') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_author') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_sync_status') . '</th>
+                            <th>' . $addon->i18n('github_installer_module_assets') . '</th>
+                            <th class="rex-table-action">' . $addon->i18n('github_installer_module_actions') . '</th>
                         </tr>
                     </thead>
                     <tbody>';
@@ -145,8 +145,8 @@ if ($repo && isset($repositories[$repo])) {
                         ]);
                         $actionButton = '<a href="' . $actionUrl . '" 
                                class="btn btn-warning btn-xs"
-                               onclick="return confirm(\'' . $addon->i18n('modules_update_confirm', rex_escape($module['name'])) . '\')">
-                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('modules_update') . '
+                               onclick="return confirm(\'' . $addon->i18n('github_installer_modules_update_confirm', rex_escape($module['name'])) . '\')">
+                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('github_installer_modules_update') . '
                             </a>';
                     } else {
                         $syncStatus = '<span class="label label-success"><i class="rex-icon fa-check"></i> Aktuell</span><br>';
@@ -166,8 +166,8 @@ if ($repo && isset($repositories[$repo])) {
                         ]);
                         $actionButton = '<a href="' . $actionUrl . '" 
                                class="btn btn-default btn-xs"
-                               onclick="return confirm(\'' . $addon->i18n('modules_update_confirm', rex_escape($module['name'])) . '\')">
-                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('modules_reload') . '
+                               onclick="return confirm(\'' . $addon->i18n('github_installer_modules_update_confirm', rex_escape($module['name'])) . '\')">
+                                <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('github_installer_modules_reload') . '
                             </a>';
                     }
                 } else {
@@ -180,8 +180,8 @@ if ($repo && isset($repositories[$repo])) {
                     ]);
                     $actionButton = '<a href="' . $actionUrl . '" 
                            class="btn btn-primary btn-xs"
-                           onclick="return confirm(\'' . $addon->i18n('modules_install_confirm', rex_escape($module['name'])) . '\')">
-                            <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('modules_install') . '
+                           onclick="return confirm(\'' . $addon->i18n('github_installer_modules_install_confirm', rex_escape($module['name'])) . '\')">
+                            <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('github_installer_modules_install') . '
                         </a>';
                     $statusBadge = '<span class="label label-default">Neu</span>';
                     
@@ -210,9 +210,9 @@ if ($repo && isset($repositories[$repo])) {
                 $tableContent .= '<tr>
                     <td><strong>' . rex_escape($module['name']) . '</strong><br>' . $statusBadge . '</td>
                     <td>' . rex_escape($module['title']) . '</td>
-                    <td>' . rex_escape($module['description'] ?: $addon->i18n('no_description')) . '</td>
+                    <td>' . rex_escape($module['description'] ?: $addon->i18n('github_installer_no_description')) . '</td>
                     <td>' . rex_escape($module['version']) . '</td>
-                    <td>' . rex_escape($module['author'] ?: $addon->i18n('unknown')) . '</td>
+                    <td>' . rex_escape($module['author'] ?: $addon->i18n('github_installer_unknown')) . '</td>
                     <td>' . $syncStatus . '</td>
                     <td>' . $assetsInfo . '</td>
                     <td class="rex-table-action">' . $actionButton . '</td>
@@ -224,11 +224,11 @@ if ($repo && isset($repositories[$repo])) {
                         <td colspan="6">
                             <div class="panel panel-default">
                                 <div class="panel-body">
-                                    <h5>' . $addon->i18n('module_info') . '</h5>
+                                    <h5>' . $addon->i18n('github_installer_module_info') . '</h5>
                                     <dl class="dl-horizontal">
-                                        <dt>' . $addon->i18n('module_key') . ':</dt>
+                                        <dt>' . $addon->i18n('github_installer_module_key') . ':</dt>
                                         <dd>' . rex_escape($module['key']) . '</dd>
-                                        <dt>' . $addon->i18n('module_assets_target') . ':</dt>
+                                        <dt>' . $addon->i18n('github_installer_module_assets_target') . ':</dt>
                                         <dd>/assets/modules/' . rex_escape($module['key']) . '/</dd>
                                     </dl>
                                 </div>
@@ -241,14 +241,14 @@ if ($repo && isset($repositories[$repo])) {
             $tableContent .= '</tbody></table></div>';
             
             $fragment = new rex_fragment();
-            $fragment->setVar('title', $addon->i18n('modules_title') . ' (' . count($modules) . ')');
+            $fragment->setVar('title', $addon->i18n('github_installer_modules_title') . ' (' . count($modules) . ')');
             $fragment->setVar('body', $tableContent, false);
             echo $fragment->parse('core/page/section.php');
         } else {
-            echo rex_view::info($addon->i18n('modules_no_modules'));
+            echo rex_view::info($addon->i18n('github_installer_modules_no_modules'));
         }
         
     } catch (Exception $e) {
-        echo rex_view::error($addon->i18n('error_occurred') . ': ' . $e->getMessage());
+        echo rex_view::error($addon->i18n('github_installer_error_occurred') . ': ' . $e->getMessage());
     }
 }

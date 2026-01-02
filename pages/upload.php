@@ -13,7 +13,7 @@ $repoManager = new RepositoryManager();
 $repositories = $repoManager->getRepositories();
 
 if (empty($repositories)) {
-    echo rex_view::warning($addon->i18n('upload_no_repos') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/repositories']) . '">' . $addon->i18n('repositories') . '</a>');
+    echo rex_view::warning($addon->i18n('github_installer_upload_no_repos') . ' <a href="' . rex_url::currentBackendPage(['page' => 'github_installer/repositories']) . '">' . $addon->i18n('github_installer_repositories') . '</a>');
     return;
 }
 
@@ -26,7 +26,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
         $commitMessage = rex_post('commit_message', 'string') ?: "Upload class {$className}";
         
         if (!$className || !$targetRepo) {
-            echo rex_view::error($addon->i18n('upload_missing_data'));
+            echo rex_view::error($addon->i18n('github_installer_upload_missing_data'));
         } else {
             try {
                 if (!isset($repositories[$targetRepo])) {
@@ -38,11 +38,11 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
                 
                 if ($result) {
                     $repo = $repositories[$targetRepo];
-                    echo rex_view::success($addon->i18n('upload_success', $className, $repo['owner'] . '/' . $repo['repo']));
+                    echo rex_view::success($addon->i18n('github_installer_upload_success', $className, $repo['owner'] . '/' . $repo['repo']));
                 }
                 
             } catch (Exception $e) {
-                echo rex_view::error($addon->i18n('upload_error') . ': ' . $e->getMessage());
+                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . $e->getMessage());
             }
         }
     } else {
@@ -53,7 +53,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
         $version = rex_post('version', 'string', '1.0.0');
         
         if (!$itemId || !$targetRepo) {
-            echo rex_view::error($addon->i18n('upload_missing_data'));
+            echo rex_view::error($addon->i18n('github_installer_upload_missing_data'));
         } else {
             try {
                 if (!isset($repositories[$targetRepo])) {
@@ -74,10 +74,10 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
                     $result = uploadTemplate($itemId, $github, $repo['owner'], $repo['repo'], $repo['branch'], $addon->getConfig('upload_author', ''), $description, $version);
                 }
                 
-                echo rex_view::success($addon->i18n('upload_success', $result['name'], $repo['owner'] . '/' . $repo['repo']));
+                echo rex_view::success($addon->i18n('github_installer_upload_success', $result['name'], $repo['owner'] . '/' . $repo['repo']));
                 
             } catch (Exception $e) {
-                echo rex_view::error($addon->i18n('upload_error') . ': ' . $e->getMessage());
+                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . $e->getMessage());
             }
         }
     }
@@ -105,7 +105,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         $localClasses = $classManager->getLocalClasses();
         
         if (!isset($localClasses[$className])) {
-            echo rex_view::error($addon->i18n('item_not_found'));
+            echo rex_view::error($addon->i18n('github_installer_item_not_found'));
             return;
         }
         
@@ -118,9 +118,9 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         
         // Repository-Auswahl
         $n = [];
-        $n['label'] = '<label for="target_repo">' . $addon->i18n('upload_select_repo') . '</label>';
+        $n['label'] = '<label for="target_repo">' . $addon->i18n('github_installer_upload_select_repo') . '</label>';
         $select = '<select name="target_repo" id="target_repo" class="form-control" required>';
-        $select .= '<option value="">' . $addon->i18n('upload_choose_repo') . '</option>';
+        $select .= '<option value="">' . $addon->i18n('github_installer_upload_choose_repo') . '</option>';
         foreach ($repositories as $repoKey => $repoData) {
             $selected = ($repoKey === $defaultRepo) ? ' selected="selected"' : '';
             $select .= '<option value="' . rex_escape($repoKey) . '"' . $selected . '>' . rex_escape($repoData['display_name']) . ' (' . rex_escape($repoKey) . ')</option>';
@@ -131,7 +131,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         
         // Commit-Message
         $n = [];
-        $n['label'] = '<label for="commit_message">' . $addon->i18n('upload_commit_message') . '</label>';
+        $n['label'] = '<label for="commit_message">' . $addon->i18n('github_installer_upload_commit_message') . '</label>';
         $n['field'] = '<input class="form-control" type="text" id="commit_message" name="commit_message" value="Update class ' . rex_escape($className) . '" />';
         $formElements[] = $n;
         
@@ -153,7 +153,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         }
         
         if ($sql->getRows() === 0) {
-            echo rex_view::error($addon->i18n('item_not_found'));
+            echo rex_view::error($addon->i18n('github_installer_item_not_found'));
             return;
         }
         
@@ -168,9 +168,9 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         
         // Repository-Auswahl
         $n = [];
-        $n['label'] = '<label for="target_repo">' . $addon->i18n('upload_select_repo') . '</label>';
+        $n['label'] = '<label for="target_repo">' . $addon->i18n('github_installer_upload_select_repo') . '</label>';
         $select = '<select name="target_repo" id="target_repo" class="form-control" required>';
-        $select .= '<option value="">' . $addon->i18n('upload_choose_repo') . '</option>';
+        $select .= '<option value="">' . $addon->i18n('github_installer_upload_choose_repo') . '</option>';
         foreach ($repositories as $repoKey => $repoData) {
             $selected = ($repoKey === $defaultRepo) ? ' selected="selected"' : '';
             $select .= '<option value="' . rex_escape($repoKey) . '"' . $selected . '>' . rex_escape($repoData['display_name']) . ' (' . rex_escape($repoKey) . ')</option>';
@@ -201,8 +201,8 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
     
     $formElements = [];
     $n = [];
-    $n['field'] = '<button class="btn btn-primary" type="submit" name="upload" value="1">' . $this->i18n('upload') . '</button>';
-    $n['field'] .= ' <a class="btn btn-secondary" href="' . rex_url::currentBackendPage(['type' => $type]) . '">' . $this->i18n('cancel') . '</a>';
+    $n['field'] = '<button class="btn btn-primary" type="submit" name="upload" value="1">' . $this->i18n('github_installer_upload') . '</button>';
+    $n['field'] .= ' <a class="btn btn-secondary" href="' . rex_url::currentBackendPage(['type' => $type]) . '">' . $this->i18n('github_installer_cancel') . '</a>';
     $formElements[] = $n;
     
     $fragment = new rex_fragment();
@@ -225,9 +225,9 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
 
 // Tab-Navigation
 $tabs = [
-    'module' => $this->i18n('modules'),
-    'template' => $this->i18n('templates'),
-    'class' => $this->i18n('classes_title')
+    'module' => $this->i18n('github_installer_modules'),
+    'template' => $this->i18n('github_installer_templates'),
+    'class' => $this->i18n('github_installer_classes_title')
 ];
 
 $tabContent = '';
@@ -245,18 +245,18 @@ if ($type === 'class') {
     $localClasses = $classManager->getLocalClasses();
     
     if (empty($localClasses)) {
-        echo rex_view::info($addon->i18n('no_local_classes'));
+        echo rex_view::info($addon->i18n('github_installer_no_local_classes'));
     } else {
         $tableContent = '<div class="table-responsive">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
-                        <th>' . $addon->i18n('class_name') . '</th>
-                        <th>' . $addon->i18n('class_title') . '</th>
-                        <th>' . $addon->i18n('class_version') . '</th>
-                        <th>' . $addon->i18n('class_author') . '</th>
-                        <th>' . $addon->i18n('class_installed') . '</th>
-                        <th>' . $addon->i18n('upload') . '</th>
+                        <th>' . $addon->i18n('github_installer_class_name') . '</th>
+                        <th>' . $addon->i18n('github_installer_class_title') . '</th>
+                        <th>' . $addon->i18n('github_installer_class_version') . '</th>
+                        <th>' . $addon->i18n('github_installer_class_author') . '</th>
+                        <th>' . $addon->i18n('github_installer_class_installed') . '</th>
+                        <th>' . $addon->i18n('github_installer_upload') . '</th>
                     </tr>
                 </thead>
                 <tbody>';
@@ -267,9 +267,9 @@ if ($type === 'class') {
                 <td><strong>' . rex_escape($className) . '</strong></td>
                 <td>' . rex_escape($classData['title'] ?? 'Unnamed Class') . '</td>
                 <td>' . rex_escape($classData['version'] ?? '1.0.0') . '</td>
-                <td>' . rex_escape($classData['author'] ?? $addon->i18n('unknown')) . '</td>
-                <td>' . rex_escape($classData['installed_at'] ?? $addon->i18n('unknown')) . '</td>
-                <td><a class="btn btn-primary btn-xs" href="' . $uploadUrl . '">' . $addon->i18n('upload') . '</a></td>
+                <td>' . rex_escape($classData['author'] ?? $addon->i18n('github_installer_unknown')) . '</td>
+                <td>' . rex_escape($classData['installed_at'] ?? $addon->i18n('github_installer_unknown')) . '</td>
+                <td><a class="btn btn-primary btn-xs" href="' . $uploadUrl . '">' . $addon->i18n('github_installer_upload') . '</a></td>
             </tr>';
         }
         
@@ -281,10 +281,10 @@ if ($type === 'class') {
     $list = rex_list::factory("SELECT id, name, `key`, createdate, updatedate FROM rex_{$type} ORDER BY name");
     $list->addTableAttribute('class', 'table-striped');
 
-    $list->setColumnLabel('name', $addon->i18n('name'));
+    $list->setColumnLabel('name', $addon->i18n('github_installer_name'));
     $list->setColumnLabel('key', 'Key');
-    $list->setColumnLabel('createdate', $addon->i18n('created'));
-    $list->setColumnLabel('updatedate', $addon->i18n('updated'));
+    $list->setColumnLabel('createdate', $addon->i18n('github_installer_created'));
+    $list->setColumnLabel('updatedate', $addon->i18n('github_installer_updated'));
 
     $list->setColumnFormat('createdate', 'custom', function ($params) {
         $value = $params['list']->getValue('createdate');
@@ -302,7 +302,7 @@ if ($type === 'class') {
     });
 
     // Upload-Button hinzufügen
-    $list->addColumn('upload', $addon->i18n('upload'), -1, ['<th>###VALUE###</th>', '<td>###VALUE###</td>']);
+    $list->addColumn('upload', $addon->i18n('github_installer_upload'), -1, ['<th>###VALUE###</th>', '<td>###VALUE###</td>']);
     $list->setColumnFormat('upload', 'custom', function ($params) use ($type) {
         $itemId = $params['list']->getValue('id');
         $url = rex_url::currentBackendPage(['func' => 'upload', 'item_id' => $itemId, 'type' => $type]);
