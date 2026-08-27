@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-08-27
+
+### Fixed
+- Fixed `RuntimeException: Column "id" already exists.` when updating from an earlier version: `install.php` used `addColumn()`/`addIndex()`, which throw when run against a table that already has that column/index. Since `update.php` re-runs `install.php` on every update, this broke the update process for every existing installation. Switched to the idempotent `ensureColumn()`/`ensureIndex()`.
+
 ## [1.6.0] - 2026-08-27
 
 ### Security
