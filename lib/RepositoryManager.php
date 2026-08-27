@@ -312,64 +312,50 @@ class RepositoryManager
         ];
         
         // 1. config.yml laden falls vorhanden (primär für stuffx-Repositories)
-        if ($this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/config.yml", $repo['branch'])) {
-            try {
-                $configContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "modules/{$moduleName}/config.yml", 
-                    $repo['branch']
-                );
-                $metadata = $this->parseSimpleYaml($configContent);
-                $moduleData = array_merge($moduleData, $metadata);
-            } catch (\Exception $e) {
-                // config.yml nicht lesbar
-            }
+        // fetch-and-catch statt fileExists()+getFileContent() (2 API-Calls -> 1 Call je
+        // Datei): GitHub liefert bei fehlender Datei ohnehin nur eine 404-Exception, die
+        // wir hier genauso wie "nicht lesbar" behandeln - der vorherige exists-Check war
+        // ein zusätzlicher, unnötiger Roundtrip.
+        try {
+            $configContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "modules/{$moduleName}/config.yml", $repo['branch']);
+            $metadata = $this->parseSimpleYaml($configContent);
+            $moduleData = array_merge($moduleData, $metadata);
+        } catch (\Exception $e) {
+            // config.yml nicht vorhanden/lesbar
         }
-        
-        // 1b. package.yml als Fallback laden falls config.yml nicht vorhanden
-        if (empty($moduleData['description']) && $this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/package.yml", $repo['branch'])) {
+
+        // 1b. package.yml als Fallback laden falls config.yml keine Beschreibung lieferte
+        if (empty($moduleData['description'])) {
             try {
-                $packageContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "modules/{$moduleName}/package.yml", 
-                    $repo['branch']
-                );
+                $packageContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "modules/{$moduleName}/package.yml", $repo['branch']);
                 $metadata = $this->parseSimpleYaml($packageContent);
                 $moduleData = array_merge($moduleData, $metadata);
             } catch (\Exception $e) {
-                // package.yml nicht lesbar
+                // package.yml nicht vorhanden/lesbar
             }
         }
-        
-        // 2. README.md für Beschreibung nutzen falls package.yml keine hat
-        if (empty($moduleData['description']) && $this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/README.md", $repo['branch'])) {
-            try {
-                $readmeContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "modules/{$moduleName}/README.md", 
-                    $repo['branch']
-                );
+
+        // 2. README.md EINMAL laden - für Beschreibungs-Fallback UND für den readme_url
+        // weiter unten (Punkt 6 spart sich dadurch einen zweiten, bisher redundanten
+        // Call auf denselben Pfad).
+        try {
+            $readmeContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "modules/{$moduleName}/README.md", $repo['branch']);
+            $moduleData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/modules/{$moduleName}/README.md";
+
+            if (empty($moduleData['description'])) {
                 $description = $this->extractDescriptionFromReadme($readmeContent);
                 if ($description) {
                     $moduleData['description'] = $description;
                 }
-            } catch (\Exception $e) {
-                // README.md nicht lesbar
             }
+        } catch (\Exception $e) {
+            // README.md nicht vorhanden/lesbar
         }
-        
-        // 3. Input.php nach Kommentaren durchsuchen
+
+        // 3. Input.php nach Kommentaren durchsuchen (letzter Fallback für die Beschreibung)
         if (empty($moduleData['description'])) {
             try {
-                $inputContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "modules/{$moduleName}/input.php", 
-                    $repo['branch']
-                );
+                $inputContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "modules/{$moduleName}/input.php", $repo['branch']);
                 $description = $this->extractDescriptionFromPhp($inputContent);
                 if ($description) {
                     $moduleData['description'] = $description;
@@ -378,18 +364,14 @@ class RepositoryManager
                 // input.php nicht vorhanden
             }
         }
-        
+
         // 4. Fallback: Hübscher Name aus Ordnername
         $moduleData['title'] = $this->beautifyName($moduleName);
-        
-        // 5. Assets-Information hinzufügen
+
+        // 5. Assets-Information (reiner Verzeichnis-Existenz-Check, kein Inhalt nötig -
+        // hier bringt fetch-and-catch nichts, bleibt bei fileExists()).
         $moduleData['has_assets'] = $this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/assets", $repo['branch']);
-        
-        // 6. README-Link hinzufügen falls README.md vorhanden
-        if ($this->github->fileExists($repo['owner'], $repo['repo'], "modules/{$moduleName}/README.md", $repo['branch'])) {
-            $moduleData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/modules/{$moduleName}/README.md";
-        }
-        
+
         return $moduleData;
     }
     
@@ -408,64 +390,46 @@ class RepositoryManager
         ];
         
         // 1. config.yml laden falls vorhanden (primär für stuffx-Repositories)
-        if ($this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/config.yml", $repo['branch'])) {
-            try {
-                $configContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "templates/{$templateName}/config.yml", 
-                    $repo['branch']
-                );
-                $metadata = $this->parseSimpleYaml($configContent);
-                $templateData = array_merge($templateData, $metadata);
-            } catch (\Exception $e) {
-                // config.yml nicht lesbar
-            }
+        // fetch-and-catch statt fileExists()+getFileContent() - siehe extractModuleMetadata().
+        try {
+            $configContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "templates/{$templateName}/config.yml", $repo['branch']);
+            $metadata = $this->parseSimpleYaml($configContent);
+            $templateData = array_merge($templateData, $metadata);
+        } catch (\Exception $e) {
+            // config.yml nicht vorhanden/lesbar
         }
-        
-        // 1b. package.yml als Fallback laden falls config.yml nicht vorhanden
-        if (empty($templateData['description']) && $this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/package.yml", $repo['branch'])) {
+
+        // 1b. package.yml als Fallback laden falls config.yml keine Beschreibung lieferte
+        if (empty($templateData['description'])) {
             try {
-                $packageContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "templates/{$templateName}/package.yml", 
-                    $repo['branch']
-                );
+                $packageContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "templates/{$templateName}/package.yml", $repo['branch']);
                 $metadata = $this->parseSimpleYaml($packageContent);
                 $templateData = array_merge($templateData, $metadata);
             } catch (\Exception $e) {
-                // package.yml nicht lesbar
+                // package.yml nicht vorhanden/lesbar
             }
         }
-        
-        // 2. README.md für Beschreibung nutzen
-        if (empty($templateData['description']) && $this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/README.md", $repo['branch'])) {
-            try {
-                $readmeContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "templates/{$templateName}/README.md", 
-                    $repo['branch']
-                );
+
+        // 2. README.md EINMAL laden - für Beschreibungs-Fallback UND readme_url
+        // (spart den bisher redundanten zweiten Call auf denselben Pfad).
+        try {
+            $readmeContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "templates/{$templateName}/README.md", $repo['branch']);
+            $templateData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/templates/{$templateName}/README.md";
+
+            if (empty($templateData['description'])) {
                 $description = $this->extractDescriptionFromReadme($readmeContent);
                 if ($description) {
                     $templateData['description'] = $description;
                 }
-            } catch (\Exception $e) {
-                // README.md nicht lesbar
             }
+        } catch (\Exception $e) {
+            // README.md nicht vorhanden/lesbar
         }
-        
-        // 3. template.php nach Kommentaren durchsuchen
+
+        // 3. template.php nach Kommentaren durchsuchen (letzter Fallback für die Beschreibung)
         if (empty($templateData['description'])) {
             try {
-                $templateContent = $this->github->getFileContent(
-                    $repo['owner'], 
-                    $repo['repo'], 
-                    "templates/{$templateName}/template.php", 
-                    $repo['branch']
-                );
+                $templateContent = $this->github->getFileContent($repo['owner'], $repo['repo'], "templates/{$templateName}/template.php", $repo['branch']);
                 $description = $this->extractDescriptionFromPhp($templateContent);
                 if ($description) {
                     $templateData['description'] = $description;
@@ -474,18 +438,13 @@ class RepositoryManager
                 // template.php nicht vorhanden
             }
         }
-        
+
         // 4. Fallback: Hübscher Name aus Ordnername
         $templateData['title'] = $this->beautifyName($templateName);
-        
-        // 5. Assets-Information hinzufügen
+
+        // 5. Assets-Information (reiner Verzeichnis-Existenz-Check, kein Inhalt nötig)
         $templateData['has_assets'] = $this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/assets", $repo['branch']);
-        
-        // 6. README-Link hinzufügen falls README.md vorhanden
-        if ($this->github->fileExists($repo['owner'], $repo['repo'], "templates/{$templateName}/README.md", $repo['branch'])) {
-            $templateData['readme_url'] = "https://github.com/{$repo['owner']}/{$repo['repo']}/blob/{$repo['branch']}/templates/{$templateName}/README.md";
-        }
-        
+
         return $templateData;
     }
     
@@ -631,97 +590,40 @@ class RepositoryManager
      */
     private function getModuleInstallStatus(string $moduleKey, string $moduleName): array
     {
-        $status = [
-            'status' => 'new',
-            'existing_data' => null
-        ];
-
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($moduleKey && $this->hasKeyField('module')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['status'] = 'installed';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key')
-                ];
-                return $status;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($moduleName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE name = ?', [$moduleName]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['status'] = 'installed';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key')
-                ];
-            }
-        }
-
-        return $status;
+        return $this->getInstallStatus('module', $moduleKey, $moduleName);
     }
-    
+
     /**
      * Prüft den Installationsstatus eines Templates
      */
     private function getTemplateInstallStatus(string $templateKey, string $templateName): array
     {
-        $status = [
-            'status' => 'new',
-            'existing_data' => null
-        ];
-
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($templateKey && $this->hasKeyField('template')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['status'] = 'installed';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key')
-                ];
-                return $status;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($templateName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE name = ?', [$templateName]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['status'] = 'installed';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key')
-                ];
-            }
-        }
-
-        return $status;
+        return $this->getInstallStatus('template', $templateKey, $templateName);
     }
-    
+
     /**
-     * Prüft ob eine Tabelle ein `key` Feld hat
+     * Prüft den Installationsstatus eines Moduls/Templates: erst über `key` (falls
+     * die Tabelle ein key-Feld hat), sonst über `name`. Gemeinsame Implementierung
+     * für Module und Templates, da rex_module/rex_template dieselbe Spaltenform haben
+     * - Lookup-Logik selbst steckt in TableHelper (dort auch von NewInstallManager
+     * und UpdateManager genutzt, die denselben Such-Fallback brauchen).
      */
-    private function hasKeyField(string $table = 'module'): bool
+    private function getInstallStatus(string $table, string $key, string $name): array
     {
-        $sql = \rex_sql::factory();
-        $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable($table) . ' LIKE "key"');
-        return $sql->getRows() > 0;
+        $found = TableHelper::findExisting($table, $key, $name);
+
+        if (!$found) {
+            return ['status' => 'new', 'existing_data' => null];
+        }
+
+        return [
+            'status' => 'installed',
+            'existing_data' => [
+                'id' => $found['row']['id'],
+                'name' => $found['row']['name'],
+                'key' => $found['row']['key'] ?? '',
+            ],
+        ];
     }
 
     /**
@@ -730,7 +632,7 @@ class RepositoryManager
     public function getClassesWithStatus(string $repoKey): array
     {
         $classes = $this->getClasses($repoKey);
-        $gitClassesPath = \rex_path::addon('project') . 'lib/gitClasses/';
+        $gitClassesPath = TableHelper::classInstallBasePath();
         
         foreach ($classes as $className => &$classData) {
             $filename = $classData['filename'] ?? $className . '.php';
@@ -990,12 +892,19 @@ class RepositoryManager
     }
     
     /**
-     * Cache-Daten speichern
+     * Cache-Daten speichern (atomar via write-then-rename, siehe GitHubApi)
      */
     private function setCacheData(string $cacheKey, array $data): void
     {
         $cacheFile = $this->cacheDir . $cacheKey . '.json';
-        \rex_file::put($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
+        $tmpFile = $cacheFile . '.' . uniqid('', true) . '.tmp';
+
+        if (!\rex_file::put($tmpFile, json_encode($data, JSON_PRETTY_PRINT))) {
+            return;
+        }
+        if (!rename($tmpFile, $cacheFile)) {
+            @unlink($tmpFile);
+        }
     }
 
     /**

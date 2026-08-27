@@ -13,17 +13,23 @@ $updateManager = new UpdateManager();
 // Aktionen verarbeiten
 $func = rex_request('func', 'string');
 $repo = rex_request('repo', 'string');
+$csrfToken = rex_csrf_token::factory('github_installer_modules');
+
+if (in_array($func, ['install', 'update'], true) && !$csrfToken->isValid()) {
+    echo rex_view::error($addon->i18n('github_installer_csrf_invalid'));
+    $func = '';
+}
 
 if ($func === 'install' && $repo) {
     $module = rex_request('module', 'string');
     $key = rex_request('key', 'string');
-    
+
     if ($module) {
         try {
             $installManager->installNewModule($repo, $module, $key);
             echo rex_view::success($addon->i18n('github_installer_modules_installed_success'));
         } catch (Exception $e) {
-            echo rex_view::error($addon->i18n('github_installer_modules_install_error') . ': ' . $e->getMessage());
+            echo rex_view::error($addon->i18n('github_installer_modules_install_error') . ': ' . rex_escape($e->getMessage()));
         }
     }
 }
@@ -31,13 +37,13 @@ if ($func === 'install' && $repo) {
 if ($func === 'update' && $repo) {
     $module = rex_request('module', 'string');
     $key = rex_request('key', 'string');
-    
+
     if ($module) {
         try {
             $updateManager->updateModule($repo, $module, $key);
             echo rex_view::success($addon->i18n('github_installer_modules_updated_success'));
         } catch (Exception $e) {
-            echo rex_view::error($addon->i18n('github_installer_modules_update_error') . ': ' . $e->getMessage());
+            echo rex_view::error($addon->i18n('github_installer_modules_update_error') . ': ' . rex_escape($e->getMessage()));
         }
     }
 }
@@ -118,11 +124,11 @@ if ($repo && isset($repositories[$repo])) {
                 
                 if ($module['status'] === 'installed') {
                     // Status-Badge
-                    $statusBadge = '<span class="label label-success">Installiert</span>';
-                    
+                    $statusBadge = '<span class="label label-success">' . $addon->i18n('github_installer_status_installed') . '</span>';
+
                     // Sync-Status mit Datums-Vergleich
                     if ($module['update_available']) {
-                        $syncStatus = '<span class="label label-warning" title="Update verfügbar"><i class="rex-icon fa-cloud-download"></i> Update</span><br>';
+                        $syncStatus = '<span class="label label-warning" title="' . rex_escape($addon->i18n('github_installer_update_available_title')) . '"><i class="rex-icon fa-cloud-download"></i> ' . $addon->i18n('github_installer_update_badge') . '</span><br>';
                         if ($module['github_date']) {
                             $githubTimestamp = strtotime($module['github_date']);
                             if ($githubTimestamp > 0) {
@@ -142,14 +148,14 @@ if ($repo && isset($repositories[$repo])) {
                             'func' => 'update',
                             'module' => $module['name'],
                             'key' => $module['key']
-                        ]);
+                        ] + $csrfToken->getUrlParams());
                         $actionButton = '<a href="' . $actionUrl . '" 
                                class="btn btn-warning btn-xs"
                                onclick="return confirm(\'' . $addon->i18n('github_installer_modules_update_confirm', rex_escape($module['name'])) . '\')">
                                 <i class="rex-icon rex-icon-refresh"></i> ' . $addon->i18n('github_installer_modules_update') . '
                             </a>';
                     } else {
-                        $syncStatus = '<span class="label label-success"><i class="rex-icon fa-check"></i> Aktuell</span><br>';
+                        $syncStatus = '<span class="label label-success"><i class="rex-icon fa-check"></i> ' . $addon->i18n('github_installer_up_to_date') . '</span><br>';
                         if ($module['db_date']) {
                             $dbTimestamp = strtotime($module['db_date']);
                             if ($dbTimestamp > 0) {
@@ -163,7 +169,7 @@ if ($repo && isset($repositories[$repo])) {
                             'func' => 'update',
                             'module' => $module['name'],
                             'key' => $module['key']
-                        ]);
+                        ] + $csrfToken->getUrlParams());
                         $actionButton = '<a href="' . $actionUrl . '" 
                                class="btn btn-default btn-xs"
                                onclick="return confirm(\'' . $addon->i18n('github_installer_modules_update_confirm', rex_escape($module['name'])) . '\')">
@@ -177,13 +183,13 @@ if ($repo && isset($repositories[$repo])) {
                         'func' => 'install',
                         'module' => $module['name'],
                         'key' => $module['key']
-                    ]);
+                    ] + $csrfToken->getUrlParams());
                     $actionButton = '<a href="' . $actionUrl . '" 
                            class="btn btn-primary btn-xs"
                            onclick="return confirm(\'' . $addon->i18n('github_installer_modules_install_confirm', rex_escape($module['name'])) . '\')">
                             <i class="rex-icon rex-icon-download"></i> ' . $addon->i18n('github_installer_modules_install') . '
                         </a>';
-                    $statusBadge = '<span class="label label-default">Neu</span>';
+                    $statusBadge = '<span class="label label-default">' . $addon->i18n('github_installer_status_new') . '</span>';
                     
                     // Sync-Status für neue Module
                     if ($module['github_date']) {
@@ -220,6 +226,15 @@ if ($repo && isset($repositories[$repo])) {
                 
                 // Details-Bereich falls Key vorhanden
                 if ($module['key']) {
+                    // "module_<ID>" ist kein echter Key, sondern der Platzhalter, den der Upload
+                    // erzeugt hat, weil das Quell-Modul dort noch keinen Key gesetzt hatte
+                    // (siehe pages/upload.php: uploadModule()). Im UI klar kennzeichnen, statt ihn
+                    // wie einen regulären Key darzustellen - sonst wirkt es wie ID-basiertes Matching.
+                    $isPlaceholderKey = (bool) preg_match('/^module_\d+$/', $module['key']);
+                    $keyBadge = $isPlaceholderKey
+                        ? ' <span class="label label-warning" title="' . rex_escape($addon->i18n('github_installer_placeholder_key_hint')) . '">' . $addon->i18n('github_installer_placeholder_key_badge') . '</span>'
+                        : '';
+
                     $tableContent .= '<tr class="collapse" id="module-details-' . rex_escape($module['name']) . '">
                         <td colspan="6">
                             <div class="panel panel-default">
@@ -227,10 +242,10 @@ if ($repo && isset($repositories[$repo])) {
                                     <h5>' . $addon->i18n('github_installer_module_info') . '</h5>
                                     <dl class="dl-horizontal">
                                         <dt>' . $addon->i18n('github_installer_module_key') . ':</dt>
-                                        <dd>' . rex_escape($module['key']) . '</dd>
+                                        <dd>' . rex_escape($module['key']) . $keyBadge . '</dd>
                                         <dt>' . $addon->i18n('github_installer_module_assets_target') . ':</dt>
                                         <dd>/assets/modules/' . rex_escape($module['key']) . '/</dd>
-                                    </dl>
+                                    </dl>' . ($isPlaceholderKey ? '<p class="text-muted">' . $addon->i18n('github_installer_placeholder_key_hint') . '</p>' : '') . '
                                 </div>
                             </div>
                         </td>
@@ -249,6 +264,6 @@ if ($repo && isset($repositories[$repo])) {
         }
         
     } catch (Exception $e) {
-        echo rex_view::error($addon->i18n('github_installer_error_occurred') . ': ' . $e->getMessage());
+        echo rex_view::error($addon->i18n('github_installer_error_occurred') . ': ' . rex_escape($e->getMessage()));
     }
 }

@@ -6,7 +6,13 @@ use FriendsOfREDAXO\GitHubInstaller\ClassManager;
 
 $func = rex_request('func', 'string');
 $type = rex_request('type', 'string', 'module');
+// $type landet u.a. als Tabellenname in einem rex_list-Query (siehe unten) - daher
+// hart auf die drei erlaubten Werte begrenzen, statt Request-Input frei durchzureichen.
+if (!in_array($type, ['module', 'template', 'class'], true)) {
+    $type = 'module';
+}
 $addon = rex_addon::get('github_installer');
+$csrfToken = rex_csrf_token::factory('github_installer_upload');
 
 // Repository-Manager für Repository-Auswahl
 $repoManager = new RepositoryManager();
@@ -18,7 +24,9 @@ if (empty($repositories)) {
 }
 
 // Upload durchführen
-if ($func === 'upload' && rex_post('upload', 'bool')) {
+if ($func === 'upload' && rex_post('upload', 'bool') && !$csrfToken->isValid()) {
+    echo rex_view::error($addon->i18n('github_installer_csrf_invalid'));
+} elseif ($func === 'upload' && rex_post('upload', 'bool')) {
     if ($type === 'class') {
         // Klassen-Upload
         $className = rex_post('class_name', 'string');
@@ -30,7 +38,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
         } else {
             try {
                 if (!isset($repositories[$targetRepo])) {
-                    throw new Exception('Repository nicht gefunden');
+                    throw new Exception($addon->i18n('github_installer_repo_not_found'));
                 }
                 
                 $classManager = new ClassManager();
@@ -42,7 +50,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
                 }
                 
             } catch (Exception $e) {
-                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . $e->getMessage());
+                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . rex_escape($e->getMessage()));
             }
         }
     } else {
@@ -57,7 +65,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
         } else {
             try {
                 if (!isset($repositories[$targetRepo])) {
-                    throw new Exception('Repository nicht gefunden');
+                    throw new Exception($addon->i18n('github_installer_repo_not_found'));
                 }
                 
                 $repo = $repositories[$targetRepo];
@@ -65,7 +73,7 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
                 
                 // Repository testen
                 if (!$github->testRepository($repo['owner'], $repo['repo'], $repo['branch'])) {
-                    throw new Exception("Repository {$repo['owner']}/{$repo['repo']} nicht erreichbar");
+                    throw new Exception($addon->i18n('github_installer_repo_unreachable', $repo['owner'] . '/' . $repo['repo']));
                 }
                 
                 if ($type === 'module') {
@@ -75,9 +83,16 @@ if ($func === 'upload' && rex_post('upload', 'bool')) {
                 }
                 
                 echo rex_view::success($addon->i18n('github_installer_upload_success', $result['name'], $repo['owner'] . '/' . $repo['repo']));
-                
+
+                // "module_45" / "template_45" ist kein echter Key, sondern der ID-Platzhalter
+                // aus uploadModule()/uploadTemplate() - im Backend explizit als solchen kennzeichnen,
+                // damit er nicht mit einem regulären REDAXO-Key verwechselt wird.
+                if (preg_match('/^(module|template)_\d+$/', (string) $result['name'])) {
+                    echo rex_view::warning($addon->i18n('github_installer_upload_placeholder_key_hint', $result['name']));
+                }
+
             } catch (Exception $e) {
-                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . $e->getMessage());
+                echo rex_view::error($addon->i18n('github_installer_upload_error') . ': ' . rex_escape($e->getMessage()));
             }
         }
     }
@@ -101,18 +116,24 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
     if ($type === 'class') {
         // Klassen-Upload Formular
         $className = rex_request('class_name', 'string');
-        $classManager = new ClassManager();
-        $localClasses = $classManager->getLocalClasses();
-        
+        $itemLabel = $addon->i18n('github_installer_class_label');
+        try {
+            $classManager = new ClassManager();
+            $localClasses = $classManager->getLocalClasses();
+        } catch (Exception $e) {
+            echo rex_view::error(rex_escape($e->getMessage()));
+            return;
+        }
+
         if (!isset($localClasses[$className])) {
             echo rex_view::error($addon->i18n('github_installer_item_not_found'));
             return;
         }
-        
+
         $classData = $localClasses[$className];
-        
+
         $content = '<fieldset>';
-        $content .= '<legend>Klasse hochladen: ' . rex_escape($classData['title'] ?? $className) . '</legend>';
+        $content .= '<legend>' . $itemLabel . ' hochladen: ' . rex_escape($classData['title'] ?? $className) . '</legend>';
         
         $formElements = [];
         
@@ -145,11 +166,11 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         if ($type === 'module') {
             $sql = rex_sql::factory();
             $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_module WHERE id = ?', [$itemId]);
-            $itemLabel = 'Modul';
+            $itemLabel = $addon->i18n('github_installer_module_label');
         } else {
             $sql = rex_sql::factory();
             $sql->setQuery('SELECT id AS id, name AS name, `key` AS `key` FROM rex_template WHERE id = ?', [$itemId]);
-            $itemLabel = 'Template';
+            $itemLabel = $addon->i18n('github_installer_template_label');
         }
         
         if ($sql->getRows() === 0) {
@@ -162,7 +183,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         $itemKey = $sql->getValue('key');
         
         $content = '<fieldset>';
-        $content .= '<legend>' . $itemLabel . ' hochladen: ' . rex_escape($itemName ?: 'Unbekannt') . '</legend>';
+        $content .= '<legend>' . $itemLabel . ' hochladen: ' . rex_escape($itemName ?: $addon->i18n('github_installer_unknown')) . '</legend>';
         
         $formElements = [];
         
@@ -181,7 +202,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
         
         $n = [];
         $n['label'] = '<label for="description">Beschreibung</label>';
-        $n['field'] = '<textarea class="form-control" id="description" name="description" rows="3" placeholder="Kurze Beschreibung des ' . $itemLabel . 's...">' . rex_escape($itemName ?: 'Unbekannt') . '</textarea>';
+        $n['field'] = '<textarea class="form-control" id="description" name="description" rows="3" placeholder="Kurze Beschreibung des ' . $itemLabel . 's...">' . rex_escape($itemName ?: $addon->i18n('github_installer_unknown')) . '</textarea>';
         $formElements[] = $n;
         
         $n = [];
@@ -217,6 +238,7 @@ if ($func === 'upload' && !rex_post('upload', 'bool')) {
     $output = $fragment->parse('core/page/section.php');
     
     echo '<form action="' . rex_url::currentBackendPage(['func' => 'upload', 'type' => $type]) . '" method="post">';
+    echo $csrfToken->getHiddenField();
     echo $output;
     echo '</form>';
     
@@ -241,9 +263,14 @@ echo '<ul class="nav nav-tabs">' . $tabContent . '</ul>';
 // Item-Liste anzeigen
 if ($type === 'class') {
     // Klassen-Liste
-    $classManager = new ClassManager();
-    $localClasses = $classManager->getLocalClasses();
-    
+    try {
+        $classManager = new ClassManager();
+        $localClasses = $classManager->getLocalClasses();
+    } catch (Exception $e) {
+        echo rex_view::error(rex_escape($e->getMessage()));
+        return;
+    }
+
     if (empty($localClasses)) {
         echo rex_view::info($addon->i18n('github_installer_no_local_classes'));
     } else {
@@ -278,7 +305,9 @@ if ($type === 'class') {
     }
 } else {
     // Module/Template Liste
-    $list = rex_list::factory("SELECT id, name, `key`, createdate, updatedate FROM rex_{$type} ORDER BY name");
+    // $type ist oben bereits auf ['module','template','class'] geprüft, hier zusätzlich
+    // über rex::getTable() statt roher String-Interpolation aufgelöst.
+    $list = rex_list::factory('SELECT id, name, `key`, createdate, updatedate FROM ' . rex::getTable($type) . ' ORDER BY name');
     $list->addTableAttribute('class', 'table-striped');
 
     $list->setColumnLabel('name', $addon->i18n('github_installer_name'));
@@ -314,15 +343,25 @@ if ($type === 'class') {
 }
 
 // Helper Functions
+// Als globale Funktionen deklariert (nicht in einer Klasse) und in ein Page-Include
+// eingebettet - bei einem versehentlichen zweiten Include derselben Seite im selben
+// Request würde das sonst mit "cannot redeclare function" fatal werden.
+if (!function_exists('uploadModule')) {
+
 function uploadModule($moduleId, $github, $owner, $repo, $branch, $author, $description, $version) {
     $sql = rex_sql::factory();
     $sql->setQuery('SELECT * FROM rex_module WHERE id = ?', [$moduleId]);
     
     if ($sql->getRows() === 0) {
-        throw new Exception('Modul nicht gefunden');
+        throw new Exception(rex_addon::get('github_installer')->i18n('github_installer_item_not_found'));
     }
     
     // Werte direkt über rex_sql Methoden abrufen
+    // $moduleName wird als GitHub-Ordnername und als "key:" im Manifest verwendet.
+    // Hat das Modul in REDAXO noch keinen eigenen Key (rex_module.key ist leer),
+    // ist "module_<ID>" NUR ein Platzhalter aus der lokalen Modul-ID dieser Instanz -
+    // kein stabiler Bezeichner. Sobald im Modul ein sprechender Key gesetzt und erneut
+    // hochgeladen wird, ersetzt dieser den Platzhalter.
     $moduleName = $sql->getValue('key') ?: 'module_' . $moduleId;
     $moduleNameTitle = $sql->getValue('name') ?: 'Unnamed Module';
     $moduleInput = $sql->getValue('input') ?: "<?php\n// Modul Input\n";
@@ -355,10 +394,12 @@ function uploadTemplate($templateId, $github, $owner, $repo, $branch, $author, $
     $sql->setQuery('SELECT * FROM rex_template WHERE id = ?', [$templateId]);
     
     if ($sql->getRows() === 0) {
-        throw new Exception('Template nicht gefunden');
+        throw new Exception(rex_addon::get('github_installer')->i18n('github_installer_item_not_found'));
     }
     
     // Werte direkt über rex_sql Methoden abrufen
+    // Gleicher Platzhalter-Mechanismus wie bei uploadModule(): "template_<ID>"
+    // ist nur ein Fallback, solange das Template keinen eigenen Key hat.
     $templateName = $sql->getValue('key') ?: 'template_' . $templateId;
     $templateNameTitle = $sql->getValue('name') ?: 'Unnamed Template';
     $templateContent = $sql->getValue('content') ?: "<?php\n// Template Content\n";
@@ -432,6 +473,8 @@ function generateTemplateReadme($templateName, $description) {
     $readme[] = "1. Repository zum GitHub Installer hinzufügen";
     $readme[] = "2. Template installieren";
     $readme[] = "";
-    
+
     return implode("\n", $readme);
 }
+
+} // function_exists('uploadModule')

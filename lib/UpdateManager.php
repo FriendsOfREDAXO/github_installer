@@ -21,50 +21,7 @@ class UpdateManager
      */
     public function getModuleStatus(string $moduleKey, string $moduleName): array
     {
-        $status = [
-            'exists' => false,
-            'update_method' => null, // 'key' oder 'name'
-            'existing_data' => null
-        ];
-
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($moduleKey && $this->hasKeyField('module')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['exists'] = true;
-                $status['update_method'] = 'key';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key'),
-                    'input' => $checkSql->getValue('input'),
-                    'output' => $checkSql->getValue('output')
-                ];
-                return $status;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($moduleName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('module') . ' WHERE name = ?', [$moduleName]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['exists'] = true;
-                $status['update_method'] = 'name';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key'),
-                    'input' => $checkSql->getValue('input'),
-                    'output' => $checkSql->getValue('output')
-                ];
-            }
-        }
-
-        return $status;
+        return $this->getUpdateStatus('module', $moduleKey, $moduleName);
     }
 
     /**
@@ -101,7 +58,7 @@ class UpdateManager
         $status = $this->getModuleStatus($moduleKey, $moduleTitle);
         
         if (!$status['exists']) {
-            throw new \Exception('Modul existiert nicht - verwenden Sie den InstallManager für neue Installationen');
+            throw new \Exception('Modul existiert nicht - bitte über "Installieren" neu anlegen statt zu aktualisieren');
         }
 
         // Input und Output laden
@@ -139,7 +96,7 @@ class UpdateManager
         $updateSql->setValue('output', $outputCode);
         
         // Key nur setzen wenn es existiert und einen Wert hat und wir nicht über Key updaten
-        if ($moduleKey && $this->hasKeyField('module') && $status['update_method'] !== 'key') {
+        if ($moduleKey && TableHelper::hasKeyField('module') && $status['update_method'] !== 'key') {
             $updateSql->setValue('key', $moduleKey);
         }
 
@@ -194,48 +151,31 @@ class UpdateManager
      */
     public function getTemplateStatus(string $templateKey, string $templateName): array
     {
-        $status = [
-            'exists' => false,
-            'update_method' => null,
-            'existing_data' => null
+        return $this->getUpdateStatus('template', $templateKey, $templateName);
+    }
+
+    /**
+     * Prüft ob ein Modul/Template bereits existiert und liefert dessen Status +
+     * Update-Methode (key/name). Gemeinsame Implementierung für Module und
+     * Templates - siehe TableHelper.
+     */
+    private function getUpdateStatus(string $table, string $key, string $name): array
+    {
+        $found = TableHelper::findExisting($table, $key, $name);
+
+        if (!$found) {
+            return ['exists' => false, 'update_method' => null, 'existing_data' => null];
+        }
+
+        return [
+            'exists' => true,
+            'update_method' => $found['matched_by'],
+            'existing_data' => [
+                'id' => $found['row']['id'],
+                'name' => $found['row']['name'],
+                'key' => $found['row']['key'] ?? '',
+            ],
         ];
-
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($templateKey && $this->hasKeyField('template')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['exists'] = true;
-                $status['update_method'] = 'key';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key'),
-                    'content' => $checkSql->getValue('content')
-                ];
-                return $status;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($templateName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT * FROM ' . \rex::getTable('template') . ' WHERE name = ?', [$templateName]);
-            
-            if ($checkSql->getRows() > 0) {
-                $status['exists'] = true;
-                $status['update_method'] = 'name';
-                $status['existing_data'] = [
-                    'id' => $checkSql->getValue('id'),
-                    'name' => $checkSql->getValue('name'),
-                    'key' => $checkSql->getValue('key'),
-                    'content' => $checkSql->getValue('content')
-                ];
-            }
-        }
-
-        return $status;
     }
 
     /**
@@ -272,7 +212,7 @@ class UpdateManager
         $status = $this->getTemplateStatus($templateKey, $templateTitle);
         
         if (!$status['exists']) {
-            throw new \Exception('Template existiert nicht - verwenden Sie den InstallManager für neue Installationen');
+            throw new \Exception('Template existiert nicht - bitte über "Installieren" neu anlegen statt zu aktualisieren');
         }
 
         // Template-Code laden
@@ -296,7 +236,7 @@ class UpdateManager
         $updateSql->setValue('content', $templateCode);
         
         // Key nur setzen wenn es existiert und einen Wert hat und wir nicht über Key updaten
-        if ($templateKey && $this->hasKeyField('template') && $status['update_method'] !== 'key') {
+        if ($templateKey && TableHelper::hasKeyField('template') && $status['update_method'] !== 'key') {
             $updateSql->setValue('key', $templateKey);
         }
 
@@ -351,19 +291,25 @@ class UpdateManager
      */
     public function updateClass(string $repoKey, string $className): bool
     {
-        $repositoryManager = new RepositoryManager();
-        $classes = $repositoryManager->getClasses($repoKey);
-        
+        // Siehe NewInstallManager::installClass() - $className fließt unten in einen
+        // Dateisystempfad ein und wird hart validiert, bevor die Repo-Liste geprüft wird.
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            throw new \Exception('Ungültiger Klassenname');
+        }
+
+        $classes = $this->repoManager->getClasses($repoKey);
+
         if (!isset($classes[$className])) {
             throw new \Exception("Klasse '{$className}' nicht gefunden");
         }
-        
+
         $classData = $classes[$className];
         $targetDirectory = $classData['target_directory'] ?? 'lib';
-        $filename = $classData['filename'] ?? $className . '.php';
+        // basename(): siehe NewInstallManager::installClass()
+        $filename = basename($classData['filename'] ?? ($className . '.php'));
         
-        // Ziel-Pfad bestimmen - IMMER in gitClasses Unterordner
-        $basePath = \rex_path::addon('project') . 'lib/gitClasses/';
+        // Ziel-Pfad bestimmen - konfigurierbares Ziel-Addon (Default 'project'), siehe TableHelper
+        $basePath = TableHelper::classInstallBasePath();
         
         // Jede Klasse bekommt ihren eigenen Ordner im gitClasses Verzeichnis
         $targetPath = $basePath . $className . '/';
@@ -372,7 +318,7 @@ class UpdateManager
         
         // Prüfen ob Datei existiert (zum Neu-Laden muss sie vorhanden sein)
         if (!file_exists($targetFile)) {
-            throw new \Exception("Klasse '{$className}' ist nicht installiert - verwenden Sie den InstallManager für neue Installationen");
+            throw new \Exception("Klasse '{$className}' ist nicht installiert - bitte über \"Installieren\" neu anlegen statt zu aktualisieren");
         }
         
         // Backup der alten Datei erstellen
@@ -394,15 +340,5 @@ class UpdateManager
         
         error_log("GitHub Installer - Class '{$className}' successfully reloaded at {$targetFile}");
         return true;
-    }
-
-    /**
-     * Prüft ob eine Tabelle ein `key` Feld hat
-     */
-    private function hasKeyField(string $table = 'module'): bool
-    {
-        $sql = \rex_sql::factory();
-        $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable($table) . ' LIKE "key"');
-        return $sql->getRows() > 0;
     }
 }

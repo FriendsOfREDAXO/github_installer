@@ -8,13 +8,18 @@ $github = new GitHubApi();
 
 // Cache löschen Action
 $func = rex_request('func', 'string');
+$csrfToken = rex_csrf_token::factory('github_installer_cache');
 
 if ($func === 'clear') {
-    try {
-        $github->clearAllCache();
-        echo rex_view::success($addon->i18n('github_installer_cache_cleared_success'));
-    } catch (Exception $e) {
-        echo rex_view::error($addon->i18n('github_installer_cache_clear_error') . ': ' . $e->getMessage());
+    if (!$csrfToken->isValid()) {
+        echo rex_view::error($addon->i18n('github_installer_csrf_invalid'));
+    } else {
+        try {
+            $github->clearAllCache();
+            echo rex_view::success($addon->i18n('github_installer_cache_cleared_success'));
+        } catch (Exception $e) {
+            echo rex_view::error($addon->i18n('github_installer_cache_clear_error') . ': ' . rex_escape($e->getMessage()));
+        }
     }
 }
 
@@ -51,7 +56,7 @@ $content = '<div class="row">
 
 if ($stats['file_count'] > 0) {
     $content .= '<div class="text-center" style="margin-top: 20px;">
-        <a href="' . rex_url::currentBackendPage(['func' => 'clear']) . '" 
+        <a href="' . rex_url::currentBackendPage(['func' => 'clear'] + $csrfToken->getUrlParams()) . '"
            class="btn btn-warning"
            onclick="return confirm(\'' . $addon->i18n('github_installer_cache_clear_confirm') . '\')">
             <i class="rex-icon rex-icon-delete"></i> ' . $addon->i18n('github_installer_cache_clear') . '

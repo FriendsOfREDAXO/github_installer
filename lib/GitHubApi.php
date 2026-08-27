@@ -26,7 +26,7 @@ class GitHubApi
     /**
      * API Request durchführen
      */
-    private function makeRequest(string $endpoint, string $method = 'GET', array $data = null, bool $useCache = true): array
+    private function makeRequest(string $endpoint, string $method = 'GET', ?array $data = null, bool $useCache = true): array
     {
         $cacheKey = md5($endpoint . $this->token);
         $cacheFile = $this->cacheDir . $cacheKey . '.json';
@@ -68,12 +68,10 @@ class GitHubApi
         
         $response = @file_get_contents($url, false, $context);
         if ($response === false) {
-            // HTTP Response Header prüfen für bessere Fehlermeldungen
-            $error = error_get_last();
-            if ($error && strpos($error['message'], '404') !== false) {
-                throw new \Exception('Resource not found (404): ' . $url);
-            }
-            throw new \Exception('GitHub API request failed: ' . $url);
+            // $http_response_header wird von file_get_contents() im aufrufenden Scope gesetzt
+            // und liefert HTTP-Statuscode + Rate-Limit-Header für eine genauere Fehlermeldung,
+            // statt Rate-Limits/abgelaufene Tokens/Netzwerkfehler alle gleich zu behandeln.
+            throw new \Exception($this->describeRequestFailure($http_response_header ?? [], $url));
         }
         
         $result = json_decode($response, true);
@@ -88,12 +86,65 @@ class GitHubApi
         
         // Cache speichern (nur bei GET)
         if ($method === 'GET' && $response !== false) {
-            rex_file::put($cacheFile, $response);
+            $this->writeCacheFileAtomically($cacheFile, $response);
         }
-        
+
         return $result;
     }
+
+    /**
+     * Cache-Datei atomar schreiben (write-then-rename), damit ein gleichzeitiger
+     * Reader nie eine halb geschriebene Datei sieht.
+     */
+    private function writeCacheFileAtomically(string $cacheFile, string $content): void
+    {
+        $tmpFile = $cacheFile . '.' . uniqid('', true) . '.tmp';
+        if (!rex_file::put($tmpFile, $content)) {
+            return;
+        }
+        if (!rename($tmpFile, $cacheFile)) {
+            @unlink($tmpFile);
+        }
+    }
     
+    /**
+     * Erklärende Fehlermeldung aus den HTTP-Response-Headern eines fehlgeschlagenen
+     * file_get_contents()-Requests bauen (Statuscode, Rate-Limit, Auth-Fehler).
+     *
+     * @param string[] $responseHeaders
+     */
+    private function describeRequestFailure(array $responseHeaders, string $url): string
+    {
+        $statusCode = null;
+        $rateLimitRemaining = null;
+
+        foreach ($responseHeaders as $header) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $matches)) {
+                $statusCode = (int) $matches[1];
+            } elseif (stripos($header, 'X-RateLimit-Remaining:') === 0) {
+                $rateLimitRemaining = trim(substr($header, strlen('X-RateLimit-Remaining:')));
+            }
+        }
+
+        if (403 === $statusCode && '0' === $rateLimitRemaining) {
+            return 'GitHub API Rate-Limit erreicht - bitte später erneut versuchen oder ein Token mit höherem Limit hinterlegen.';
+        }
+        if (401 === $statusCode) {
+            return 'GitHub-Token ungültig oder abgelaufen - bitte in den Einstellungen prüfen.';
+        }
+        if (403 === $statusCode) {
+            return "Zugriff verweigert (403): {$url} - Token-Berechtigungen prüfen.";
+        }
+        if (404 === $statusCode) {
+            return "Resource not found (404): {$url}";
+        }
+        if (null !== $statusCode) {
+            return "GitHub API request failed (HTTP {$statusCode}): {$url}";
+        }
+
+        return "GitHub API request failed (keine Antwort erhalten, ggf. Netzwerkproblem): {$url}";
+    }
+
     /**
      * Repository-Inhalte abrufen
      */

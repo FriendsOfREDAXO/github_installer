@@ -1,5 +1,5 @@
 package: github_installer
-version: '1.6.0-dev'
+version: '1.6.0'
 author: 'Friends Of REDAXO'
 supportpage: 'https://github.com/FriendsOfREDAXO/github_installer'
 info: 'Bidirectional GitHub integration - Install modules/templates from GitHub and upload your own'
@@ -38,3 +38,4 @@ default_config:
     upload_repo: ''
     upload_branch: 'main'
     upload_author: ''
+    class_install_addon: 'project'

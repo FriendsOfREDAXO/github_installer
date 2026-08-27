@@ -86,7 +86,7 @@ class NewInstallManager
         $sql->setValue('output', $outputCode);
         
         // Key nur setzen wenn es existiert und einen Wert hat
-        if ($moduleKey && $this->hasKeyField('module')) {
+        if ($moduleKey && TableHelper::hasKeyField('module')) {
             $sql->setValue('key', $moduleKey);
         }
 
@@ -182,7 +182,7 @@ class NewInstallManager
         $sql->setValue('content', $templateCode);
         
         // Key nur setzen wenn es existiert und einen Wert hat
-        if ($templateKey && $this->hasKeyField('template')) {
+        if ($templateKey && TableHelper::hasKeyField('template')) {
             $sql->setValue('key', $templateKey);
         }
 
@@ -227,27 +227,7 @@ class NewInstallManager
      */
     private function moduleExists(string $moduleKey, string $moduleName): bool
     {
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($moduleKey && $this->hasKeyField('module')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT id FROM ' . \rex::getTable('module') . ' WHERE `key` = ?', [$moduleKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                return true;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($moduleName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT id FROM ' . \rex::getTable('module') . ' WHERE name = ?', [$moduleName]);
-            
-            if ($checkSql->getRows() > 0) {
-                return true;
-            }
-        }
-
-        return false;
+        return null !== TableHelper::findExisting('module', $moduleKey, $moduleName);
     }
 
     /**
@@ -255,27 +235,7 @@ class NewInstallManager
      */
     private function templateExists(string $templateKey, string $templateName): bool
     {
-        // 1. Priorität: Prüfung über `key` Feld (wenn vorhanden)
-        if ($templateKey && $this->hasKeyField('template')) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT id FROM ' . \rex::getTable('template') . ' WHERE `key` = ?', [$templateKey]);
-            
-            if ($checkSql->getRows() > 0) {
-                return true;
-            }
-        }
-
-        // 2. Fallback: Prüfung über Name
-        if ($templateName) {
-            $checkSql = \rex_sql::factory();
-            $checkSql->setQuery('SELECT id FROM ' . \rex::getTable('template') . ' WHERE name = ?', [$templateName]);
-            
-            if ($checkSql->getRows() > 0) {
-                return true;
-            }
-        }
-
-        return false;
+        return null !== TableHelper::findExisting('template', $templateKey, $templateName);
     }
 
     /**
@@ -283,19 +243,27 @@ class NewInstallManager
      */
     public function installClass(string $repoKey, string $className): bool
     {
-        $repositoryManager = new RepositoryManager();
-        $classes = $repositoryManager->getClasses($repoKey);
-        
+        // $className landet unten direkt in einem Dateisystempfad. Er muss zwar auch
+        // ein vorhandener Schlüssel in $classes sein, aber diese Liste stammt aus dem
+        // (potenziell fremdverwalteten) GitHub-Repo - zusätzlich hart validieren.
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            throw new \Exception('Ungültiger Klassenname');
+        }
+
+        $classes = $this->repoManager->getClasses($repoKey);
+
         if (!isset($classes[$className])) {
             throw new \Exception("Klasse '{$className}' nicht gefunden");
         }
         
         $classData = $classes[$className];
         $targetDirectory = $classData['target_directory'] ?? 'lib';
-        $filename = $classData['filename'] ?? $className . '.php';
-        
-        // Ziel-Pfad bestimmen - IMMER in gitClasses Unterordner
-        $basePath = \rex_path::addon('project') . 'lib/gitClasses/';
+        // basename(): $classData['filename'] kommt aus dem GitHub-Repo und könnte
+        // theoretisch Pfadanteile enthalten - nur den reinen Dateinamen übernehmen.
+        $filename = basename($classData['filename'] ?? ($className . '.php'));
+
+        // Ziel-Pfad bestimmen - konfigurierbares Ziel-Addon (Default 'project'), siehe TableHelper
+        $basePath = TableHelper::classInstallBasePath();
         
         // Jede Klasse bekommt ihren eigenen Ordner im gitClasses Verzeichnis
         $targetPath = $basePath . $className . '/';
@@ -321,15 +289,5 @@ class NewInstallManager
         
         error_log("GitHub Installer - Class '{$className}' successfully installed to {$targetFile}");
         return true;
-    }
-
-    /**
-     * Prüft ob eine Tabelle ein `key` Feld hat
-     */
-    private function hasKeyField(string $table = 'module'): bool
-    {
-        $sql = \rex_sql::factory();
-        $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable($table) . ' LIKE "key"');
-        return $sql->getRows() > 0;
     }
 }

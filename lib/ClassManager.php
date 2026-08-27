@@ -19,7 +19,8 @@ class ClassManager
     {
         $this->github = new GitHubApi();
         $this->repoManager = new RepositoryManager();
-        $this->projectLibPath = rex_path::addon('project') . 'lib/gitClasses/';
+        // Konfigurierbares Ziel-Addon (Default 'project'), siehe TableHelper::classInstallBasePath()
+        $this->projectLibPath = TableHelper::classInstallBasePath();
     }
     
     /**
@@ -27,29 +28,34 @@ class ClassManager
      */
     public function installClass(string $repoKey, string $className): bool
     {
+        // $className landet unten in einem Dateisystempfad - vor jeder Nutzung hart validieren.
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            throw new \Exception('Ungültiger Klassenname');
+        }
+
         $repositories = $this->repoManager->getRepositories();
-        
+
         if (!isset($repositories[$repoKey])) {
             throw new \Exception('Repository not found');
         }
-        
+
         $repo = $repositories[$repoKey];
         $classes = $this->repoManager->getClasses($repoKey);
-        
+
         if (!isset($classes[$className])) {
             throw new \Exception('Class not found in repository');
         }
-        
+
         $classData = $classes[$className];
         $targetDir = $this->projectLibPath . $className . '/';
-        
+
         // Zielverzeichnis erstellen
         if (!rex_dir::create($targetDir)) {
             throw new \Exception('Cannot create target directory: ' . $targetDir);
         }
-        
-        // Hauptklassen-Datei installieren
-        $filename = $classData['filename'] ?? $className . '.php';
+
+        // Hauptklassen-Datei installieren (basename: siehe Kommentar oben)
+        $filename = basename($classData['filename'] ?? ($className . '.php'));
         $targetFile = $targetDir . $filename;
         
         if (!rex_file::put($targetFile, $classData['content'])) {
@@ -70,6 +76,10 @@ class ClassManager
      */
     public function updateClass(string $repoKey, string $className): bool
     {
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            throw new \Exception('Ungültiger Klassenname');
+        }
+
         $targetDir = $this->projectLibPath . $className . '/';
         
         if (!is_dir($targetDir)) {
@@ -94,9 +104,13 @@ class ClassManager
         } catch (\Exception $e) {
             // Bei Fehler: Backup wiederherstellen
             rex_dir::delete($targetDir);
-            rex_dir::copy($backupDir, $targetDir);
+            if (!rex_dir::copy($backupDir, $targetDir)) {
+                // Rollback selbst fehlgeschlagen (z.B. Disk voll/Rechte) - Backup NICHT löschen,
+                // sonst ist die Klasse weder aktualisiert noch wiederhergestellt und verloren.
+                throw new \Exception('Update fehlgeschlagen und Backup-Wiederherstellung ebenfalls fehlgeschlagen. Backup liegt noch unter: ' . $backupDir . ' - Original-Fehler: ' . $e->getMessage());
+            }
             rex_dir::delete($backupDir);
-            
+
             throw $e;
         }
     }
@@ -106,6 +120,12 @@ class ClassManager
      */
     public function uploadClass(string $repoKey, string $className, string $commitMessage = ''): bool
     {
+        // $className kommt hier direkt von rex_post('class_name') (pages/upload.php) und
+        // landet unten in einem Dateisystempfad - vor jeder Nutzung hart validieren.
+        if (!preg_match('/^[A-Za-z0-9_-]+$/', $className)) {
+            throw new \Exception('Ungültiger Klassenname');
+        }
+
         $repositories = $this->repoManager->getRepositories();
         
         if (!isset($repositories[$repoKey])) {

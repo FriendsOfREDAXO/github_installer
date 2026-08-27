@@ -9,19 +9,25 @@ $repoManager = new RepositoryManager();
 
 // Aktionen verarbeiten
 $func = rex_request('func', 'string');
+$csrfToken = rex_csrf_token::factory('github_installer_repositories');
+
+if (in_array($func, ['add', 'edit', 'delete'], true) && !$csrfToken->isValid()) {
+    echo rex_view::error($addon->i18n('github_installer_csrf_invalid'));
+    $func = '';
+}
 
 if ($func === 'add') {
     $owner = rex_request('owner', 'string');
     $repo = rex_request('repo', 'string');
     $displayName = rex_request('display_name', 'string');
     $branch = rex_request('branch', 'string', 'main');
-    
+
     if ($owner && $repo) {
         try {
             $repoManager->addRepository($owner, $repo, $displayName, $branch);
             echo rex_view::success($addon->i18n('github_installer_repo_added_success'));
         } catch (Exception $e) {
-            echo rex_view::error($e->getMessage());
+            echo rex_view::error(rex_escape($e->getMessage()));
         }
     }
 }
@@ -30,20 +36,20 @@ if ($func === 'edit') {
     $key = rex_request('key', 'string');
     $displayName = rex_request('display_name', 'string');
     $branch = rex_request('branch', 'string', 'main');
-    
+
     if ($key) {
         try {
             $repoManager->updateRepository($key, $displayName, $branch);
             echo rex_view::success($addon->i18n('github_installer_repo_updated_success'));
         } catch (Exception $e) {
-            echo rex_view::error($e->getMessage());
+            echo rex_view::error(rex_escape($e->getMessage()));
         }
     }
 }
 
 if ($func === 'delete') {
     $key = rex_request('key', 'string');
-    
+
     if ($key) {
         if ($repoManager->removeRepository($key)) {
             echo rex_view::success($addon->i18n('github_installer_repo_removed_success'));
@@ -104,7 +110,7 @@ $fragment->setVar('buttons', $buttons, false);
 $addForm = $fragment->parse('core/page/section.php');
 
 // Formular ausgeben
-echo '<form action="' . rex_url::currentBackendPage() . '" method="post">' . $addForm . '</form>';
+echo '<form action="' . rex_url::currentBackendPage() . '" method="post">' . $csrfToken->getHiddenField() . $addForm . '</form>';
 
 // Vorhandene Repositories anzeigen
 $repositories = $repoManager->getRepositories();
@@ -124,7 +130,7 @@ if (!empty($repositories)) {
             <tbody>';
     
     foreach ($repositories as $key => $repo) {
-        $deleteUrl = rex_url::currentBackendPage(['func' => 'delete', 'key' => $key]);
+        $deleteUrl = rex_url::currentBackendPage(['func' => 'delete', 'key' => $key] + $csrfToken->getUrlParams());
         
         $tableContent .= '<tr>
             <td><strong>' . rex_escape($key) . '</strong></td>

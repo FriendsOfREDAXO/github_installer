@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-08-27
+
+### Security
+- Fixed a SQL injection via the unvalidated `type` request parameter on the upload page
+- Added CSRF protection (`rex_csrf_token`) to all state-changing actions: settings, repositories, modules, templates, classes, cache, upload
+- Fixed reflected XSS caused by unescaped exception messages in several backend pages
+- Added strict validation of class names before they are used in filesystem paths (defense against path traversal from repository content)
+- GitHub token is no longer rendered into the settings page HTML; added an explicit "remove token" option, leaving the field empty now keeps the existing token unchanged
+
+### Changed
+- Modules/templates without their own `key` now show a clear "placeholder" badge instead of looking like a real, portable key
+- The addon used to install classes into is now configurable (`class_install_addon` setting, default `project`) instead of being hardcoded
+- Reduced GitHub API calls for the module/template list by replacing exists-then-fetch with fetch-and-catch and removing a redundant duplicate README check (noticeably faster on a cold cache)
+- GitHub API errors now distinguish rate limiting, invalid/expired tokens, and network failures instead of one generic message
+- Cache files are now written atomically to avoid readers seeing a partially written file
+
+### Fixed
+- Removed dead/unused code (`InstallManager.php`, `UploadManager.php`, `upload_new.php`) that duplicated the live install/update logic
+- Fixed an undefined-variable warning and broken form title when uploading a class
+- Deduplicated the module/template/class existence-lookup logic that was copy-pasted across `RepositoryManager`, `NewInstallManager` and `UpdateManager` into a shared `TableHelper`
+- Fixed a silent failure path where a failed backup-restore during a class update could lose both the update and the backup
+- Translated remaining hardcoded German UI strings so the English locale displays correctly
+
 ## [1.2.0] - 2025-09-10
 
 ### Added
